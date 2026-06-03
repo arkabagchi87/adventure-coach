@@ -1,8 +1,17 @@
+import BottomNav from '@/components/shared/BottomNav'
+
 export default function CoachPage() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-6">
-      <h1 className="text-2xl font-bold text-white">Coach</h1>
-      <p className="text-gray-400 mt-2">Coming in Step 8</p>
-    </main>
+    <div className="min-h-screen bg-gray-950 pb-24">
+      <div className="max-w-lg mx-auto">
+        <div className="flex items-center px-5 pt-12 pb-4">
+          <h1 className="text-xl font-black text-white tracking-tight">Coach</h1>
+        </div>
+        <div className="flex items-center justify-center h-64 text-gray-600 text-sm">
+          Coming in Step 8
+        </div>
+      </div>
+      <BottomNav />
+    </div>
   )
 }

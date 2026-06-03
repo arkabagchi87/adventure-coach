@@ -5,10 +5,16 @@ export const metadata = {
   description: 'Goal-countdown fitness coaching. Will you be ready in time?',
 }
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+}
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className="bg-gray-950 text-white min-h-screen">
+      <body className="bg-gray-950 text-white min-h-screen antialiased">
         {children}
       </body>
     </html>
