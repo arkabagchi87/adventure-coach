@@ -1,5 +1,6 @@
 import { readFileSync } from 'fs'
 import { join } from 'path'
+import DashboardHeader from '@/components/dashboard/DashboardHeader'
 import Countdown from '@/components/dashboard/Countdown'
 import ReadinessRing from '@/components/dashboard/ReadinessRing'
 import DimensionBreakdown from '@/components/dashboard/DimensionBreakdown'
@@ -47,24 +48,8 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gray-950 pb-24">
       <div className="max-w-lg mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-12 pb-2">
-          <div>
-            <h1 className="text-xl font-black text-white tracking-tight">Adventure Coach</h1>
-            <p className="text-xs text-gray-500">Kilimanjaro · Lemosho Route</p>
-          </div>
-          <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center">
-            <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
-              <path
-                d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
-                stroke="white"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </div>
-        </div>
+        {/* Header with upload button */}
+        <DashboardHeader />
 
         {/* Countdown */}
         <Countdown daysToGoal={daysToGoal} />
