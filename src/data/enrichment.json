@@ -1,1 +1,76 @@
-{}
+{
+  "defaults": {
+    "incline_walk": {
+      "incline_percent": 12,
+      "note": "Arka confirmed: usually 12%, sometimes 15%"
+    }
+  },
+  "activities": {
+    "a009": {
+      "incline_percent": 10,
+      "pack_weight_kg": 0,
+      "felt_zone": "moderate",
+      "note": "First incline session — 10% warmup"
+    },
+    "a013": {
+      "incline_percent": 12,
+      "pack_weight_kg": 0,
+      "felt_zone": "moderate"
+    },
+    "a017": {
+      "incline_percent": 12,
+      "pack_weight_kg": 0,
+      "felt_zone": "moderate"
+    },
+    "a022": {
+      "incline_percent": 12,
+      "pack_weight_kg": 0,
+      "felt_zone": "moderate"
+    },
+    "a026": {
+      "incline_percent": 12,
+      "pack_weight_kg": 0,
+      "felt_zone": "moderate"
+    },
+    "a007": {
+      "terrain": "hilly",
+      "trail_type": "dirt",
+      "pack_weight_kg": 0
+    },
+    "a011": {
+      "terrain": "hilly",
+      "trail_type": "dirt",
+      "pack_weight_kg": 3
+    },
+    "a015": {
+      "terrain": "steep trail",
+      "trail_type": "rocky",
+      "pack_weight_kg": 3
+    },
+    "a004": {
+      "focus_area": "legs",
+      "exercises": ["squats", "lunges", "step-ups"],
+      "weighted": true,
+      "eccentric_focus": false
+    },
+    "a012": {
+      "focus_area": "legs",
+      "exercises": ["squats", "step-ups", "calf raises"],
+      "weighted": true,
+      "eccentric_focus": false
+    },
+    "a021": {
+      "focus_area": "legs",
+      "exercises": ["eccentric squats", "slow step-downs", "lunges"],
+      "weighted": true,
+      "eccentric_focus": true,
+      "note": "First eccentric session logged"
+    },
+    "a028": {
+      "focus_area": "legs",
+      "exercises": ["eccentric squats", "slow step-downs", "deadlifts"],
+      "weighted": true,
+      "eccentric_focus": true
+    }
+  }
+}
