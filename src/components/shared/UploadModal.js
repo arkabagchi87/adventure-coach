@@ -6,19 +6,19 @@ const SOURCES = [
   {
     key: 'zepp',
     label: 'Zepp / Amazfit',
-    description: 'Export from Zepp app → Profile → My Data → Health Data',
+    description: 'In the Zepp app: tap Profile (bottom-right) → My Data → Health Data Export → choose a date range → tap Export → share the CSV file here.',
     accept: '.csv',
   },
   {
     key: 'apple_health',
     label: 'Apple Health',
-    description: 'Health app → profile icon → Export All Health Data → export.xml',
+    description: 'On your iPhone: open Health → tap your profile photo (top-right) → Export All Health Data → tap Export → share the export.zip here (we\'ll extract the XML automatically).',
     accept: '.xml',
   },
   {
     key: 'manual',
     label: 'Manual CSV',
-    description: 'Use the template below to log activities by hand',
+    description: 'Download the template below, fill in your activities, and upload it here. One row per activity.',
     accept: '.csv',
   },
 ]

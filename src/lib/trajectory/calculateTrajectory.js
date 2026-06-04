@@ -74,8 +74,10 @@ export function generateRequiredTrajectory(
  * Merges required trajectory with actual readiness snapshots.
  * Actual snapshots are keyed by date: { 'YYYY-MM-DD': score }.
  *
- * Returns array suitable for Recharts:
- * { date, required, actual? }
+ * Snapshot dates that fall between trajectory grid points are injected
+ * with an interpolated required value so the dot always renders.
+ *
+ * Returns array suitable for Recharts: { date, required, actual? }
  */
 export function buildTrajectoryChartData(
   actualSnapshots = {},
@@ -83,13 +85,38 @@ export function buildTrajectoryChartData(
 ) {
   const required = generateRequiredTrajectory(trainingStartDate)
 
-  return required.map(point => {
-    const entry = { date: point.date, required: point.required }
-    if (actualSnapshots[point.date] !== undefined) {
-      entry.actual = actualSnapshots[point.date]
+  // Build a map for fast lookup
+  const requiredMap = new Map(required.map(p => [p.date, p.required]))
+
+  // Interpolate required score for a date not on the grid
+  function interpolate(dateStr) {
+    let before = null, after = null
+    for (const p of required) {
+      if (p.date <= dateStr) before = p
+      else if (!after) after = p
     }
-    return entry
-  })
+    if (before && after) {
+      const totalMs = new Date(after.date) - new Date(before.date)
+      const elapsedMs = new Date(dateStr) - new Date(before.date)
+      const pct = elapsedMs / totalMs
+      return Math.round(before.required + pct * (after.required - before.required))
+    }
+    return before?.required ?? after?.required ?? 10
+  }
+
+  // Union of trajectory dates + snapshot dates
+  const allDates = new Set([...required.map(p => p.date), ...Object.keys(actualSnapshots)])
+
+  return Array.from(allDates)
+    .sort()
+    .map(date => {
+      const req = requiredMap.has(date) ? requiredMap.get(date) : interpolate(date)
+      const entry = { date, required: req }
+      if (actualSnapshots[date] !== undefined) {
+        entry.actual = actualSnapshots[date]
+      }
+      return entry
+    })
 }
 
 /**

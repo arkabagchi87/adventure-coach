@@ -9,7 +9,7 @@ const QUESTIONS = [
 
 export default function SuggestedQuestions({ onSelect, disabled }) {
   return (
-    <div className="px-4 pb-3 flex gap-2 overflow-x-auto no-scrollbar">
+    <div className="pl-4 pr-8 pb-3 flex gap-2 overflow-x-auto no-scrollbar">
       {QUESTIONS.map(q => (
         <button
           key={q}

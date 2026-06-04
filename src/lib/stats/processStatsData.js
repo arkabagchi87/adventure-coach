@@ -19,7 +19,12 @@ function parseDate(str) {
 /** Filter activities by time range. */
 export function filterByRange(activities, range) {
   const cutoff = getCutoffDate(range)
-  return activities.filter(a => parseDate(a.date) >= cutoff)
+  const endOfToday = new Date()
+  endOfToday.setHours(23, 59, 59, 999)
+  return activities.filter(a => {
+    const d = parseDate(a.date)
+    return d >= cutoff && d <= endOfToday
+  })
 }
 
 /** Monday of a given date. */

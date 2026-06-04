@@ -2,7 +2,7 @@
 
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, ReferenceLine, Legend
+  Tooltip, ResponsiveContainer, ReferenceLine, ReferenceDot
 } from 'recharts'
 
 function formatDate(dateStr) {
@@ -47,9 +47,9 @@ export default function TrajectoryChart({ data, currentScore }) {
   const futureData = data.filter(d => d.date > today && d.date <= futureEnd.toISOString().slice(0, 10))
   const chartData = [...visibleData, ...futureData]
 
-  // Thin out to avoid too many points
+  // Thin out to avoid too many points, but always keep today's point
   const step = Math.max(1, Math.floor(chartData.length / 24))
-  const thinned = chartData.filter((_, i) => i % step === 0)
+  const thinned = chartData.filter((d, i) => i % step === 0 || d.date === today)
 
   return (
     <div className="px-5 py-4 border-t border-gray-800">
@@ -97,8 +97,18 @@ export default function TrajectoryChart({ data, currentScore }) {
             x={today}
             stroke="#4b5563"
             strokeDasharray="3 3"
-            label={{ value: 'Today', fill: '#6b7280', fontSize: 9, position: 'top' }}
           />
+          {currentScore !== null && (
+            <ReferenceDot
+              x={today}
+              y={currentScore}
+              r={6}
+              fill="#f97316"
+              stroke="#111827"
+              strokeWidth={2}
+              label={{ value: `${currentScore}`, fill: '#f97316', fontSize: 11, fontWeight: 700, position: 'top' }}
+            />
+          )}
         </LineChart>
       </ResponsiveContainer>
     </div>

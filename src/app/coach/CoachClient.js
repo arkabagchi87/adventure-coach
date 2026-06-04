@@ -49,7 +49,7 @@ export default function CoachClient() {
 
       if (!res.ok || data.error) {
         setError(data.error || 'Something went wrong. Try again.')
-        setMessages(prev => prev.slice(0, -1)) // remove user message on error
+        setMessages(prev => prev.slice(0, -1))
         return
       }
 
@@ -70,9 +70,9 @@ export default function CoachClient() {
   }
 
   return (
-    <div className="flex flex-col flex-1 pb-20 min-h-0">
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 pt-4">
+    <>
+      {/* Messages — natural height, page body scrolls */}
+      <div className="px-4 pt-4 pb-2">
         {messages.map((m, i) => (
           <MessageBubble key={i} message={m} />
         ))}
@@ -85,12 +85,14 @@ export default function CoachClient() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Suggested questions */}
-      <div className="flex-shrink-0 border-t border-gray-800 pt-3">
+      {/* Suggested questions — directly below messages */}
+      <div className="border-t border-gray-800 pt-3">
         <SuggestedQuestions onSelect={sendMessage} disabled={loading} />
+      </div>
 
-        {/* Input row */}
-        <div className="flex items-end gap-2 px-4 pb-2">
+      {/* Input bar — fixed above bottom nav (accounts for safe-area-inset on iPhone) */}
+      <div className="fixed left-0 right-0 z-40 bg-gray-950/95 backdrop-blur-sm border-t border-gray-800" style={{ bottom: 'calc(58px + env(safe-area-inset-bottom, 0px))' }}>
+        <div className="max-w-lg mx-auto flex items-end gap-2 px-4 py-2">
           <textarea
             ref={inputRef}
             value={input}
@@ -122,6 +124,6 @@ export default function CoachClient() {
           </button>
         </div>
       </div>
-    </div>
+    </>
   )
 }
