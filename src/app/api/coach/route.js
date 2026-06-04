@@ -15,45 +15,15 @@ function loadData() {
   }
 }
 
-function buildActivitySummary(activities, enrichment) {
-  if (activities.length === 0) return 'No activities uploaded yet.'
-
-  const recent = activities
-    .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, 20)
-
-  const totalActivities = activities.length
-  const dateRange = `${activities[0].date} to ${activities[activities.length - 1].date}`
-
-  const typeCounts = {}
-  for (const a of activities) {
-    typeCounts[a.activity_type] = (typeCounts[a.activity_type] || 0) + 1
-  }
-
-  const totalElevation = activities.reduce((s, a) => s + (a.elevation_gain_m || 0), 0)
-  const totalHours = activities.reduce((s, a) => s + (a.duration_minutes || 0), 0) / 60
-
-  const recentList = recent.map(a => {
-    const enrich = enrichment.activities?.[a.id] || {}
-    const parts = [
-      `${a.date}: ${a.activity_type} ${a.duration_minutes}min`,
-      a.elevation_gain_m ? `${a.elevation_gain_m}m gain` : null,
-      a.avg_heart_rate ? `avg HR ${a.avg_heart_rate}` : null,
-      a.zone2_percent ? `Z2 ${a.zone2_percent}%` : null,
-      a.hrv ? `HRV ${a.hrv}` : null,
-      enrich.incline_percent ? `${enrich.incline_percent}% incline` : null,
-      enrich.eccentric_focus ? 'eccentric' : null,
-      a.pack_weight_kg ? `${a.pack_weight_kg}kg pack` : null,
-    ].filter(Boolean)
-    return parts.join(', ')
-  })
-
-  return `Total: ${totalActivities} activities | ${dateRange}
-Hours trained: ${totalHours.toFixed(1)}h | Total elevation: ${totalElevation}m
-Activity mix: ${Object.entries(typeCounts).map(([t, n]) => `${t}×${n}`).join(', ')}
-
-Recent 20 activities:
-${recentList.join('\n')}`
+function buildActivitySummary(activities) {
+  if (activities.length === 0) return 'No data yet.'
+  const sorted = [...activities].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5)
+  const totalElev = activities.reduce((s, a) => s + (a.elevation_gain_m || 0), 0)
+  const totalHrs  = activities.reduce((s, a) => s + (a.duration_minutes || 0), 0) / 60
+  const recent = sorted.map(a =>
+    `${a.date} ${a.activity_type} ${a.duration_minutes}min${a.elevation_gain_m ? ' '+a.elevation_gain_m+'m' : ''}${a.zone2_percent ? ' Z2:'+a.zone2_percent+'%' : ''}`
+  ).join('; ')
+  return `${activities.length} sessions, ${totalHrs.toFixed(0)}h, ${totalElev}m elev. Recent: ${recent}`
 }
 
 export async function POST(request) {
@@ -77,32 +47,40 @@ export async function POST(request) {
   const { activities, enrichment } = loadData()
   const readiness = calculateReadiness(activities, enrichment)
   const daysToGoal = getDaysToGoal()
-  const activitySummary = buildActivitySummary(activities, enrichment)
-  const systemPrompt = buildCoachSystemPrompt(activitySummary, readiness, daysToGoal)
+  const activitySummary = buildActivitySummary(activities)
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey)
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
-      systemInstruction: systemPrompt,
-    })
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
 
-    // Build history (all but last message)
-    const history = messages.slice(0, -1).map(m => ({
-      role: m.role === 'user' ? 'user' : 'model',
-      parts: [{ text: m.content }],
-    }))
+    // Build a single text prompt — avoids multi-turn role validation entirely.
+    // Include conversation history as labelled turns after the system prompt.
+    const userMessages = messages.filter(m => m.role === 'user')
+    const lastUserMessage = userMessages[userMessages.length - 1]?.content
+    if (!lastUserMessage) {
+      return Response.json({ error: 'No user message found.' }, { status: 400 })
+    }
 
-    const chat = model.startChat({ history })
-    const lastMessage = messages[messages.length - 1].content
-    const result = await chat.sendMessage(lastMessage)
+    const score = readiness.score ?? 'unknown'
+    const z2 = readiness.dimensions?.aerobic_base?.input?.zone2Percent ?? 'unknown'
+    const elev = readiness.dimensions?.elevation_capacity?.input?.weeklyElevationM ?? 0
+
+    const fullPrompt = `You are a Kilimanjaro mountaineering coach. Goal: summit Feb 2028 (${daysToGoal} days away), Lemosho route, 8 days, 5895m.
+Data: readiness ${score}/100, Zone2 ${z2}%, weekly elevation ${elev}m. ${activitySummary}
+Be direct, data-driven, 2-3 short paragraphs. Reference the actual numbers.
+
+Question: ${lastUserMessage}
+
+Answer:`
+
+    const result = await model.generateContent(fullPrompt)
     const text = result.response.text()
 
     return Response.json({ reply: text })
   } catch (err) {
     console.error('Gemini error:', err)
     return Response.json({
-      error: 'Coach is unavailable right now. Check your Gemini API key.',
+      error: `Gemini error: ${err.message}`,
     }, { status: 500 })
   }
 }
