@@ -60,7 +60,7 @@ export default function UploadModal({ onClose, onSuccess }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60">
-      <div className="w-full max-w-lg bg-gray-900 rounded-t-2xl p-6 pb-10">
+      <div className="w-full max-w-lg bg-gray-900 rounded-t-2xl p-6" style={{ paddingBottom: 'max(2.5rem, env(safe-area-inset-bottom))' }}>
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-base font-bold text-white">Upload Activities</h2>

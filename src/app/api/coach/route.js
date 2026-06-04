@@ -80,7 +80,7 @@ Answer:`
   } catch (err) {
     console.error('Gemini error:', err)
     return Response.json({
-      error: `Gemini error: ${err.message}`,
+      error: 'Coach is unavailable right now. Please try again in a moment.',
     }, { status: 500 })
   }
 }
