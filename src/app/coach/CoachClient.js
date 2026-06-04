@@ -70,9 +70,11 @@ export default function CoachClient() {
   }
 
   return (
-    <>
-      {/* Messages — natural height, page body scrolls */}
-      <div className="px-4 pt-4 pb-2">
+    // flex-1 min-h-0: fills all remaining height from header down; min-h-0 enables inner scroll
+    <div className="flex flex-col flex-1 min-h-0">
+
+      {/* Messages — fills all available space, scrolls when overflows */}
+      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-2">
         {messages.map((m, i) => (
           <MessageBubble key={i} message={m} />
         ))}
@@ -85,14 +87,16 @@ export default function CoachClient() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Suggested questions — directly below messages */}
-      <div className="border-t border-gray-800 pt-3">
-        <SuggestedQuestions onSelect={sendMessage} disabled={loading} />
-      </div>
-
-      {/* Input bar — fixed above bottom nav (accounts for safe-area-inset on iPhone) */}
-      <div className="fixed left-0 right-0 z-40 bg-gray-950/95 backdrop-blur-sm border-t border-gray-800" style={{ bottom: 'calc(58px + env(safe-area-inset-bottom, 0px))' }}>
-        <div className="max-w-lg mx-auto flex items-end gap-2 px-4 py-2">
+      {/* Footer — suggestions + input, pinned to bottom, never scrolls */}
+      {/* paddingBottom clears the fixed BottomNav + device safe area */}
+      <div
+        className="flex-shrink-0 border-t border-gray-800 bg-gray-950"
+        style={{ paddingBottom: 'calc(58px + env(safe-area-inset-bottom, 0px))' }}
+      >
+        <div className="pt-3">
+          <SuggestedQuestions onSelect={sendMessage} disabled={loading} />
+        </div>
+        <div className="flex items-end gap-2 px-4 pb-2">
           <textarea
             ref={inputRef}
             value={input}
@@ -124,6 +128,7 @@ export default function CoachClient() {
           </button>
         </div>
       </div>
-    </>
+
+    </div>
   )
 }
