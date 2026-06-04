@@ -9,13 +9,13 @@ const QUESTIONS = [
 
 export default function SuggestedQuestions({ onSelect, disabled }) {
   return (
-    <div className="pl-4 pr-8 pb-3 flex gap-2 overflow-x-auto no-scrollbar">
+    <div className="px-4 pb-2 flex flex-wrap gap-2">
       {QUESTIONS.map(q => (
         <button
           key={q}
           onClick={() => onSelect(q)}
           disabled={disabled}
-          className="flex-shrink-0 text-xs text-orange-400 bg-gray-800 border border-gray-700 px-3 py-2 rounded-full whitespace-nowrap disabled:opacity-40"
+          className="text-xs text-orange-400 bg-gray-800 border border-gray-700 px-3 py-2 rounded-full disabled:opacity-40 active:opacity-70 transition-opacity"
         >
           {q}
         </button>

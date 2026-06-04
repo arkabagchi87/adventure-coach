@@ -70,33 +70,49 @@ export default function CoachClient() {
   }
 
   return (
-    // flex-1 min-h-0: fills all remaining height from header down; min-h-0 enables inner scroll
     <div className="flex flex-col flex-1 min-h-0">
 
-      {/* Messages — fills all available space, scrolls when overflows */}
-      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-2">
-        {messages.map((m, i) => (
-          <MessageBubble key={i} message={m} />
-        ))}
-        {loading && <TypingIndicator />}
-        {error && (
-          <div className="text-xs text-red-400 text-center py-2 px-4 bg-red-900/20 rounded-lg mb-3">
-            {error}
+      {/*
+        Scroll zone: flex-1, clips overflow and scrolls.
+        The inner div uses min-h-full so it always fills the scroll container.
+        Messages stack from the top. A flex-1 spacer absorbs any leftover space,
+        pushing the suggested questions to the bottom when messages are few.
+        As messages grow, the spacer shrinks to zero and messages scroll normally.
+      */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="min-h-full flex flex-col">
+
+          {/* Messages — stack from top, natural height */}
+          <div className="px-4 pt-4 pb-2">
+            {messages.map((m, i) => (
+              <MessageBubble key={i} message={m} />
+            ))}
+            {loading && <TypingIndicator />}
+            {error && (
+              <div className="text-xs text-red-400 text-center py-2 px-4 bg-red-900/20 rounded-lg mb-3">
+                {error}
+              </div>
+            )}
+            <div ref={bottomRef} />
           </div>
-        )}
-        <div ref={bottomRef} />
+
+          {/* Spacer: collapses as messages fill space */}
+          <div className="flex-1" />
+
+          {/* Suggested questions — float above the input */}
+          <div className="border-t border-gray-800 pt-3 pb-1">
+            <SuggestedQuestions onSelect={sendMessage} disabled={loading} />
+          </div>
+
+        </div>
       </div>
 
-      {/* Footer — suggestions + input, pinned to bottom, never scrolls */}
-      {/* paddingBottom clears the fixed BottomNav + device safe area */}
+      {/* Input bar — pinned to the bottom, never scrolls */}
       <div
-        className="flex-shrink-0 border-t border-gray-800 bg-gray-950"
+        className="flex-shrink-0 border-t border-gray-800 bg-gray-950 px-4 py-2"
         style={{ paddingBottom: 'calc(58px + env(safe-area-inset-bottom, 0px))' }}
       >
-        <div className="pt-3">
-          <SuggestedQuestions onSelect={sendMessage} disabled={loading} />
-        </div>
-        <div className="flex items-end gap-2 px-4 pb-2">
+        <div className="flex items-end gap-2">
           <textarea
             ref={inputRef}
             value={input}
