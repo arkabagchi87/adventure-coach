@@ -1,9 +1,9 @@
 /**
- * Zepp CSV Parser
- * Normalises Zepp/Amazfit export to canonical activity schema.
- * Zepp exports one row per activity with columns like:
- * Date, Type, Duration, Distance, Calories, Avg Heart Rate, Max Heart Rate, etc.
+ * Watch Export CSV Parser
+ * Normalises fitness watch CSV exports to the canonical activity schema.
+ * Supports common column naming conventions (Zepp/Amazfit style).
  */
+import { estimateZonesFromAvgHr } from './calculateZones'
 
 const ZEPP_TYPE_MAP = {
   'outdoor running':    'run',
@@ -113,8 +113,14 @@ export function parseZeppCSV(csvText) {
 
     if (duration < 5) continue // skip accidental / too-short entries
 
+    // Estimate zones from avg HR if the export doesn't include zone data
+    const zones = estimateZonesFromAvgHr(avgHr) ?? {
+      zone1_percent: null, zone2_percent: null,
+      zone3_percent: null, zone4_percent: null, zone5_percent: null,
+    }
+
     activities.push({
-      id: `zepp_${date}_${idCounter++}`,
+      id: `watch_${date}_${idCounter++}`,
       date,
       activity_type:      normaliseType(rawType),
       duration_minutes:   Math.round(duration),
@@ -122,16 +128,12 @@ export function parseZeppCSV(csvText) {
       elevation_gain_m:   elevGain !== null ? Math.round(elevGain) : 0,
       avg_heart_rate:     avgHr,
       max_heart_rate:     maxHr,
-      zone1_percent:      null,
-      zone2_percent:      null,
-      zone3_percent:      null,
-      zone4_percent:      null,
-      zone5_percent:      null,
+      ...zones,
       hrv:                null,
       rhr:                null,
       pack_weight_kg:     null,
-      notes:              `Imported from Zepp — ${rawType || 'activity'}`,
-      source:             'zepp',
+      notes:              `Imported from watch export — ${rawType || 'activity'}`,
+      source:             'watch',
     })
   }
 

@@ -1,7 +1,26 @@
+import { readFileSync } from 'fs'
+import { join } from 'path'
 import BottomNav from '@/components/shared/BottomNav'
 import CoachClient from './CoachClient'
 
+function getLastActivityDate() {
+  try {
+    const activities = JSON.parse(
+      readFileSync(join(process.cwd(), 'src/data/activities.json'), 'utf8')
+    )
+    if (!activities.length) return null
+    return [...activities].sort((a, b) => b.date.localeCompare(a.date))[0].date
+  } catch {
+    return null
+  }
+}
+
 export default function CoachPage() {
+  const lastActivityDate = getLastActivityDate()
+  const daysOld = lastActivityDate
+    ? Math.floor((Date.now() - new Date(lastActivityDate + 'T00:00:00').getTime()) / 86400000)
+    : null
+
   return (
     // h-[100dvh] locks the page to the visible viewport — no body scroll
     <div className="h-[100dvh] bg-gray-950 flex flex-col">
@@ -19,7 +38,7 @@ export default function CoachPage() {
         </div>
 
         {/* Chat area — fills all remaining height */}
-        <CoachClient />
+        <CoachClient daysOld={daysOld} />
 
       </div>
 

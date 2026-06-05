@@ -8,6 +8,7 @@ import TrajectoryChart from '@/components/dashboard/TrajectoryChart'
 import PhaseIndicator from '@/components/dashboard/PhaseIndicator'
 import NextMilestone from '@/components/dashboard/NextMilestone'
 import CoachTeaser from '@/components/dashboard/CoachTeaser'
+import DataFreshnessNudge from '@/components/dashboard/DataFreshnessNudge'
 import BottomNav from '@/components/shared/BottomNav'
 import { calculateReadiness } from '@/lib/scoring/calculateReadiness'
 import { buildTrajectoryChartData, getDaysToGoal, getReadinessGap } from '@/lib/trajectory/calculateTrajectory'
@@ -32,6 +33,11 @@ export default function DashboardPage() {
   const gap = getReadinessGap(readiness.score)
   const phase = getCurrentPhase()
 
+  // Last activity date for freshness nudge
+  const lastActivityDate = activities.length > 0
+    ? [...activities].sort((a, b) => b.date.localeCompare(a.date))[0].date
+    : null
+
   // Build snapshot map for trajectory: use today's score as the current actual point
   const today = new Date().toISOString().slice(0, 10)
   const snapshots = readiness.score !== null ? { [today]: readiness.score } : {}
@@ -53,6 +59,9 @@ export default function DashboardPage() {
 
         {/* Countdown */}
         <Countdown daysToGoal={daysToGoal} />
+
+        {/* Data freshness nudge — shows only if last upload > 7 days ago */}
+        <DataFreshnessNudge lastActivityDate={lastActivityDate} />
 
         {/* Readiness Ring */}
         <div className="border-t border-gray-800">

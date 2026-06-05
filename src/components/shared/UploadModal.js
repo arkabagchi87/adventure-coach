@@ -1,39 +1,43 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import EnrichmentFlow from './EnrichmentFlow'
 
 const SOURCES = [
   {
-    key: 'zepp',
-    label: 'Zepp / Amazfit',
-    description: 'In the Zepp app: tap Profile (bottom-right) → My Data → Health Data Export → choose a date range → tap Export → share the CSV file here.',
+    key: 'watch',
+    label: 'Watch Export',
+    description: 'Export a CSV from your fitness watch app and upload it here.',
     accept: '.csv',
   },
   {
-    key: 'apple_health',
-    label: 'Apple Health',
-    description: 'On your iPhone: open Health → tap your profile photo (top-right) → Export All Health Data → tap Export → share the export.zip here (we\'ll extract the XML automatically).',
+    key: 'health_app',
+    label: 'Health App',
+    description: 'Export health data from your phone\'s health app and upload the file here.',
     accept: '.xml',
   },
   {
     key: 'manual',
     label: 'Manual CSV',
-    description: 'Download the template below, fill in your activities, and upload it here. One row per activity.',
+    description: 'Download the template below, fill in your activities, and upload it here.',
     accept: '.csv',
   },
 ]
 
 export default function UploadModal({ onClose, onSuccess }) {
-  const [source, setSource] = useState('zepp')
-  const [file, setFile]     = useState(null)
-  const [status, setStatus] = useState('idle') // idle | uploading | success | error
-  const [message, setMessage] = useState('')
-  const inputRef = useRef()
+  const [source, setSource]     = useState('watch')
+  const [file, setFile]         = useState(null)
+  const [phase, setPhase]       = useState('idle')   // idle | uploading | result | enriching
+  const [result, setResult]     = useState(null)     // upload result from API
+  const [error, setError]       = useState(null)
+  const inputRef                = useRef()
+
+  const selected = SOURCES.find(s => s.key === source)
 
   async function handleUpload() {
     if (!file) return
-    setStatus('uploading')
-    setMessage('')
+    setPhase('uploading')
+    setError(null)
 
     const form = new FormData()
     form.append('file', file)
@@ -42,25 +46,99 @@ export default function UploadModal({ onClose, onSuccess }) {
     try {
       const res  = await fetch('/api/upload', { method: 'POST', body: form })
       const data = await res.json()
+
       if (res.ok && data.success) {
-        setStatus('success')
-        setMessage(data.message)
-        onSuccess?.()
+        setResult(data)
+        if (data.questions?.length > 0) {
+          setPhase('enriching')
+        } else {
+          setPhase('result')
+        }
       } else {
-        setStatus('error')
-        setMessage(data.error || 'Upload failed')
+        setError(data.error || 'Upload failed')
+        setPhase('idle')
       }
-    } catch (err) {
-      setStatus('error')
-      setMessage('Network error — check your connection and try again')
+    } catch {
+      setError('Network error — check your connection and try again.')
+      setPhase('idle')
     }
   }
 
-  const selected = SOURCES.find(s => s.key === source)
+  function handleEnrichDone() {
+    setPhase('result')
+    // Trigger page reload after a moment to show updated score
+    setTimeout(() => {
+      onSuccess?.()
+    }, 1200)
+  }
 
+  function handleClose() {
+    if (phase === 'result') onSuccess?.()
+    else onClose()
+  }
+
+  // ── Enrichment phase ─────────────────────────────────────────────────────
+  if (phase === 'enriching' && result?.questions?.length > 0) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60">
+        <div
+          className="w-full max-w-lg bg-gray-900 rounded-t-2xl p-6"
+          style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-base font-bold text-white">Improve your score</h2>
+              <p className="text-xs text-gray-500 mt-0.5">{result.message}</p>
+            </div>
+            <button onClick={onClose} className="text-gray-500 text-xl leading-none">×</button>
+          </div>
+          <EnrichmentFlow
+            questions={result.questions}
+            onDone={handleEnrichDone}
+          />
+        </div>
+      </div>
+    )
+  }
+
+  // ── Result phase ─────────────────────────────────────────────────────────
+  if (phase === 'result' && result) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60">
+        <div
+          className="w-full max-w-lg bg-gray-900 rounded-t-2xl p-6"
+          style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-bold text-white">Upload complete</h2>
+            <button onClick={handleClose} className="text-gray-500 text-xl leading-none">×</button>
+          </div>
+          <div className="rounded-xl bg-green-900/30 border border-green-700/50 p-4 mb-4">
+            <p className="text-sm font-semibold text-green-400">{result.message}</p>
+            {result.skipped > 0 && (
+              <p className="text-xs text-gray-400 mt-1">
+                {result.skipped} duplicate{result.skipped !== 1 ? 's' : ''} skipped — your existing data was not changed.
+              </p>
+            )}
+          </div>
+          <button
+            onClick={handleClose}
+            className="w-full py-3 rounded-xl bg-orange-500 text-white text-sm font-bold"
+          >
+            View updated dashboard →
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Upload phase (idle / uploading) ──────────────────────────────────────
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60">
-      <div className="w-full max-w-lg bg-gray-900 rounded-t-2xl p-6" style={{ paddingBottom: 'max(2.5rem, env(safe-area-inset-bottom))' }}>
+      <div
+        className="w-full max-w-lg bg-gray-900 rounded-t-2xl p-6"
+        style={{ paddingBottom: 'max(2.5rem, env(safe-area-inset-bottom))' }}
+      >
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-base font-bold text-white">Upload Activities</h2>
@@ -68,11 +146,11 @@ export default function UploadModal({ onClose, onSuccess }) {
         </div>
 
         {/* Source selector */}
-        <div className="flex gap-2 mb-5">
+        <div className="flex gap-2 mb-4">
           {SOURCES.map(s => (
             <button
               key={s.key}
-              onClick={() => { setSource(s.key); setFile(null); setStatus('idle') }}
+              onClick={() => { setSource(s.key); setFile(null); setError(null) }}
               className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-colors ${
                 source === s.key ? 'bg-orange-500 text-white' : 'bg-gray-800 text-gray-400'
               }`}
@@ -82,8 +160,8 @@ export default function UploadModal({ onClose, onSuccess }) {
           ))}
         </div>
 
-        {/* Description */}
-        <p className="text-xs text-gray-500 mb-4">{selected.description}</p>
+        {/* Instructions */}
+        <p className="text-xs text-gray-500 mb-4 leading-relaxed">{selected.description}</p>
 
         {/* File drop zone */}
         <button
@@ -109,18 +187,13 @@ export default function UploadModal({ onClose, onSuccess }) {
           type="file"
           accept={selected.accept}
           className="hidden"
-          onChange={e => { setFile(e.target.files[0] || null); setStatus('idle') }}
+          onChange={e => { setFile(e.target.files[0] || null); setError(null) }}
         />
 
-        {/* Status message */}
-        {status === 'success' && (
-          <div className="mb-4 rounded-lg bg-green-900/40 border border-green-700 p-3 text-sm text-green-400">
-            {message}
-          </div>
-        )}
-        {status === 'error' && (
+        {/* Error */}
+        {error && (
           <div className="mb-4 rounded-lg bg-red-900/40 border border-red-700 p-3 text-sm text-red-400">
-            {message}
+            {error}
           </div>
         )}
 
@@ -137,14 +210,14 @@ export default function UploadModal({ onClose, onSuccess }) {
           )}
           <button
             onClick={handleUpload}
-            disabled={!file || status === 'uploading'}
+            disabled={!file || phase === 'uploading'}
             className={`flex-1 py-3 rounded-xl text-sm font-bold transition-colors ${
-              file && status !== 'uploading'
+              file && phase !== 'uploading'
                 ? 'bg-orange-500 text-white'
                 : 'bg-gray-800 text-gray-600 cursor-not-allowed'
             }`}
           >
-            {status === 'uploading' ? 'Uploading…' : 'Upload'}
+            {phase === 'uploading' ? 'Uploading…' : 'Upload'}
           </button>
         </div>
       </div>

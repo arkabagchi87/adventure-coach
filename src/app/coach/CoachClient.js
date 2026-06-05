@@ -5,13 +5,21 @@ import MessageBubble from '@/components/coach/MessageBubble'
 import SuggestedQuestions from '@/components/coach/SuggestedQuestions'
 import TypingIndicator from '@/components/coach/TypingIndicator'
 
-const OPENING_MESSAGE = {
-  role: 'assistant',
-  content: "I've reviewed your training data. You're in Phase 1 — base building — which is exactly where the focus should be on Zone 2 and building consistency. Ask me anything about your preparation, your next training block, or what Kilimanjaro will actually demand from you.",
+function buildOpeningMessage(daysOld) {
+  if (daysOld !== null && daysOld > 7) {
+    return {
+      role: 'assistant',
+      content: `I'm working from data that's ${daysOld} days old — upload your latest activities for a more accurate picture. That said, based on what I have: you're in Phase 1, base building. Zone 2 consistency is the priority. Ask me anything about your preparation.`,
+    }
+  }
+  return {
+    role: 'assistant',
+    content: "I've reviewed your training data. You're in Phase 1 — base building — which is exactly where the focus should be on Zone 2 and building consistency. Ask me anything about your preparation, your next training block, or what Kilimanjaro will actually demand from you.",
+  }
 }
 
-export default function CoachClient() {
-  const [messages, setMessages]   = useState([OPENING_MESSAGE])
+export default function CoachClient({ daysOld = null }) {
+  const [messages, setMessages]   = useState(() => [buildOpeningMessage(daysOld)])
   const [input, setInput]         = useState('')
   const [loading, setLoading]     = useState(false)
   const [error, setError]         = useState(null)

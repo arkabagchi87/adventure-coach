@@ -1,6 +1,6 @@
 /**
- * Apple Health XML Parser
- * Parses the export.xml from Apple Health.
+ * Health App XML Parser
+ * Parses health app XML export files.
  * Works in Node.js (API route) — uses regex-based parsing, no DOM dependency.
  *
  * Relevant record types:
@@ -9,6 +9,7 @@
  *   HKQuantityTypeIdentifierHeartRateVariabilitySDNN — HRV
  *   HKQuantityTypeIdentifierRestingHeartRate — RHR
  */
+import { estimateZonesFromAvgHr } from './calculateZones'
 
 const APPLE_TYPE_MAP = {
   'HKWorkoutActivityTypeRunning':          'run',
@@ -90,8 +91,14 @@ function extractWorkouts(xml) {
     if (hrAvgMatch) avgHr = Math.round(parseFloat(hrAvgMatch[1]))
     if (hrMaxMatch) maxHr = Math.round(parseFloat(hrMaxMatch[1]))
 
+    // Estimate zones from avg HR since health app exports don't include zone breakdowns
+    const zones = estimateZonesFromAvgHr(avgHr) ?? {
+      zone1_percent: null, zone2_percent: null,
+      zone3_percent: null, zone4_percent: null, zone5_percent: null,
+    }
+
     workouts.push({
-      id:               `apple_${date}_${idCounter++}`,
+      id:               `health_${date}_${idCounter++}`,
       date,
       activity_type:    mappedType,
       duration_minutes: Math.round(durationMin),
@@ -99,16 +106,12 @@ function extractWorkouts(xml) {
       elevation_gain_m: Math.round(elevGain),
       avg_heart_rate:   avgHr,
       max_heart_rate:   maxHr,
-      zone1_percent:    null,
-      zone2_percent:    null,
-      zone3_percent:    null,
-      zone4_percent:    null,
-      zone5_percent:    null,
+      ...zones,
       hrv:              null,
       rhr:              null,
       pack_weight_kg:   null,
-      notes:            `Imported from Apple Health — ${activityType}`,
-      source:           'apple_health',
+      notes:            `Imported from health app — ${activityType}`,
+      source:           'health_app',
     })
   }
 
