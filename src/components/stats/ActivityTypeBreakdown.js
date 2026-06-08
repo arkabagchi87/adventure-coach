@@ -28,15 +28,28 @@ export default function ActivityTypeBreakdown({ typeCounts, totalSessions }) {
     )
   }
 
-  // Group by tier
+  // Group by tier, skip unknown types (e.g. 'other')
   const grouped = {}
+  let knownTotal = 0
   for (const [type, count] of Object.entries(typeCounts)) {
-    let tier = 'tier3'
+    let tier = null
     for (const [t, data] of Object.entries(activityTiers)) {
       if (data.types.includes(type)) { tier = t; break }
     }
+    if (!tier) continue
     if (!grouped[tier]) grouped[tier] = []
     grouped[tier].push({ type, count })
+    knownTotal += count
+  }
+  if (knownTotal === 0) {
+    return (
+      <div className="px-5 py-4 border-t border-gray-800">
+        <h2 className="text-xs font-semibold tracking-widest text-gray-500 uppercase mb-4">
+          Activity Mix
+        </h2>
+        <p className="text-sm text-gray-600">No activities in this period</p>
+      </div>
+    )
   }
 
   return (
@@ -51,7 +64,7 @@ export default function ActivityTypeBreakdown({ typeCounts, totalSessions }) {
         .map(([tier, items]) => {
           const colors = TIER_COLORS[tier]
           const tierTotal = items.reduce((s, i) => s + i.count, 0)
-          const pct = Math.round((tierTotal / totalSessions) * 100)
+          const pct = Math.round((tierTotal / knownTotal) * 100)
 
           return (
             <div key={tier} className="mb-4">

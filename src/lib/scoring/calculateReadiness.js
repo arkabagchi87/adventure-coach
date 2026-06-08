@@ -7,6 +7,7 @@ import {
   scoreRecoveryQuality,
   getCurrentPhase,
   getActivityTier,
+  estimateCityElevationCredit,
 } from '@/config/goals/kilimanjaro'
 
 // ─── HELPERS ────────────────────────────────────────────────────────────────
@@ -80,10 +81,21 @@ function computeZone2Percent(activities) {
 
 // ─── ELEVATION CAPACITY ──────────────────────────────────────────────────────
 
-/** Rolling 4-week average weekly elevation gain (metres). */
-function computeWeeklyElevationGain(activities) {
+/** Returns elevation for one activity, using city credit when GPS data is absent. */
+function getEffectiveElevation(activity, enrichment = {}) {
+  if (activity.elevation_gain_m != null) return activity.elevation_gain_m
+  const { activity_type, duration_minutes, id } = activity
+  if (activity_type !== 'incline_walk' && activity_type !== 'stair_climb') return 0
+  const actEnrich = enrichment.activities?.[id] || {}
+  const inclinePct = actEnrich.incline_percent ?? enrichment.defaults?.treadmill_incline ?? 10
+  const packWeight = actEnrich.pack_weight_kg ?? enrichment.defaults?.pack_weight_kg ?? 0
+  return estimateCityElevationCredit(activity_type, duration_minutes, inclinePct, packWeight > 0)
+}
+
+/** Rolling 4-week average weekly elevation gain (metres), including city credits. */
+function computeWeeklyElevationGain(activities, enrichment = {}) {
   return Math.round(rollingWeeklyAverage(activities, 4,
-    weekActivities => weekActivities.reduce((s, a) => s + (a.elevation_gain_m || 0), 0)
+    weekActivities => weekActivities.reduce((s, a) => s + getEffectiveElevation(a, enrichment), 0)
   ))
 }
 
@@ -270,7 +282,7 @@ export function calculateReadiness(activities = [], enrichment = {}, dailyMetric
 
   // Compute raw inputs
   const zone2Percent        = computeZone2Percent(activities)
-  const weeklyElevationM    = computeWeeklyElevationGain(activities)
+  const weeklyElevationM    = computeWeeklyElevationGain(activities, enrichment)
   const longestActivityHrs  = computeLongestActivityHrs(activities)
   const maxConsecutiveDays  = computeMaxConsecutiveDays(activities)
   const strengthPerWeek     = computeStrengthSessionsPerWeek(activities)

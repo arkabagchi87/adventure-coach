@@ -234,7 +234,7 @@ export function getActivityTier(activityType) {
   for (const [tierKey, tier] of Object.entries(activityTiers)) {
     if (tier.types.includes(activityType)) return tierKey
   }
-  return 'tier3'
+  return null
 }
 
 // ─── 5. TRAINING PHASES ──────────────────────────────────────────────────────

@@ -21,13 +21,13 @@ import {
 // Phase 1 elevation target: 400–600m/week by end of phase
 const PHASE_ELEVATION_TARGET = 500
 
-export default function StatsClient({ activities }) {
+export default function StatsClient({ activities, enrichment = {} }) {
   const [range, setRange] = useState('30D')
 
   const filtered = useMemo(() => filterByRange(activities, range), [activities, range])
 
-  const summary      = useMemo(() => computeSummaryTotals(filtered), [filtered])
-  const elevData     = useMemo(() => buildElevationChartData(filtered), [filtered])
+  const summary      = useMemo(() => computeSummaryTotals(filtered, enrichment), [filtered, enrichment])
+  const elevData     = useMemo(() => buildElevationChartData(filtered, enrichment), [filtered, enrichment])
   const actDaysData  = useMemo(() => buildActivityDaysData(filtered), [filtered])
   const zones        = useMemo(() => computeZoneDistribution(filtered), [filtered])
   const typeCounts   = useMemo(() => computeTypeCounts(filtered), [filtered])

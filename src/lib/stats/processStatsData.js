@@ -1,4 +1,15 @@
-import { getActivityTier } from '@/config/goals/kilimanjaro'
+import { getActivityTier, estimateCityElevationCredit } from '@/config/goals/kilimanjaro'
+
+/** Returns elevation for an activity, applying city credit when GPS data is absent. */
+function getEffectiveElevation(activity, enrichment = {}) {
+  if (activity.elevation_gain_m != null) return activity.elevation_gain_m
+  const { activity_type, duration_minutes, id } = activity
+  if (activity_type !== 'incline_walk' && activity_type !== 'stair_climb') return 0
+  const actEnrich = enrichment.activities?.[id] || {}
+  const inclinePct = actEnrich.incline_percent ?? enrichment.defaults?.treadmill_incline ?? 10
+  const packWeight = actEnrich.pack_weight_kg ?? enrichment.defaults?.pack_weight_kg ?? 0
+  return estimateCityElevationCredit(activity_type, duration_minutes, inclinePct, packWeight > 0)
+}
 
 /** Returns cutoff date for a range key. */
 export function getCutoffDate(range) {
@@ -42,11 +53,11 @@ function shortWeekLabel(mondayKey) {
 }
 
 /** Weekly elevation bar chart data. */
-export function buildElevationChartData(activities) {
+export function buildElevationChartData(activities, enrichment = {}) {
   const byWeek = new Map()
   for (const a of activities) {
     const key = getMondayKey(parseDate(a.date))
-    byWeek.set(key, (byWeek.get(key) || 0) + (a.elevation_gain_m || 0))
+    byWeek.set(key, (byWeek.get(key) || 0) + getEffectiveElevation(a, enrichment))
   }
   return Array.from(byWeek.entries())
     .sort(([a], [b]) => a.localeCompare(b))
@@ -66,29 +77,27 @@ export function buildActivityDaysData(activities) {
     .map(([key, days]) => ({ week: shortWeekLabel(key), days: days.size }))
 }
 
-/** Rolling zone distribution (weighted by duration). */
+/** Zone distribution averaged by session count (each session weighted equally). */
 export function computeZoneDistribution(activities) {
   const cardioTiers = ['tier1', 'tier2', 'tier3']
   const cardio = activities.filter(a => cardioTiers.includes(getActivityTier(a.activity_type)))
-  const totalMin = cardio.reduce((s, a) => s + (a.duration_minutes || 0), 0)
-  if (totalMin === 0) return null
+  if (cardio.length === 0) return null
 
-  const zones = { z1: 0, z2: 0, z3: 0, z4: 0, z5: 0 }
+  const totals = { z1: 0, z2: 0, z3: 0, z4: 0, z5: 0 }
   for (const a of cardio) {
-    const m = a.duration_minutes || 0
-    zones.z1 += m * (a.zone1_percent || 0) / 100
-    zones.z2 += m * (a.zone2_percent || 0) / 100
-    zones.z3 += m * (a.zone3_percent || 0) / 100
-    zones.z4 += m * (a.zone4_percent || 0) / 100
-    zones.z5 += m * (a.zone5_percent || 0) / 100
+    totals.z1 += a.zone1_percent || 0
+    totals.z2 += a.zone2_percent || 0
+    totals.z3 += a.zone3_percent || 0
+    totals.z4 += a.zone4_percent || 0
+    totals.z5 += a.zone5_percent || 0
   }
-
+  const n = cardio.length
   return {
-    z1: (zones.z1 / totalMin) * 100,
-    z2: (zones.z2 / totalMin) * 100,
-    z3: (zones.z3 / totalMin) * 100,
-    z4: (zones.z4 / totalMin) * 100,
-    z5: (zones.z5 / totalMin) * 100,
+    z1: totals.z1 / n,
+    z2: totals.z2 / n,
+    z3: totals.z3 / n,
+    z4: totals.z4 / n,
+    z5: totals.z5 / n,
   }
 }
 
@@ -110,8 +119,8 @@ export function buildHrvRhrData(activities) {
 }
 
 /** Summary strip totals. */
-export function computeSummaryTotals(activities) {
-  const totalElevation = activities.reduce((s, a) => s + (a.elevation_gain_m || 0), 0)
+export function computeSummaryTotals(activities, enrichment = {}) {
+  const totalElevation = activities.reduce((s, a) => s + getEffectiveElevation(a, enrichment), 0)
   const activeDays = new Set(activities.map(a => a.date)).size
   const totalHours = activities.reduce((s, a) => s + (a.duration_minutes || 0), 0) / 60
   return { totalElevation: Math.round(totalElevation), activeDays, totalHours }
