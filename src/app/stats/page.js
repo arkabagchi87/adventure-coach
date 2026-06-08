@@ -1,19 +1,24 @@
-import { readFileSync } from 'fs'
-import { join } from 'path'
+'use client'
+
+import { useState, useEffect } from 'react'
 import StatsClient from './StatsClient'
 import BottomNav from '@/components/shared/BottomNav'
-
-function loadData() {
-  try {
-    const path = join(process.cwd(), 'src/data/activities.json')
-    return JSON.parse(readFileSync(path, 'utf8'))
-  } catch {
-    return []
-  }
-}
+import { initializeIfNeeded, getActivities } from '@/lib/storage/activityStorage'
 
 export default function StatsPage() {
-  const activities = loadData()
+  const [loaded, setLoaded] = useState(false)
+  const [activities, setActivities] = useState([])
+
+  useEffect(() => {
+    initializeIfNeeded().then(() => {
+      setActivities(getActivities())
+      setLoaded(true)
+    })
+  }, [])
+
+  if (!loaded) {
+    return <div className="min-h-screen bg-gray-950" />
+  }
 
   return (
     <div className="min-h-screen bg-gray-950 pb-24">

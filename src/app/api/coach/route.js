@@ -1,19 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
-import { readFileSync } from 'fs'
-import { join } from 'path'
 import { calculateReadiness } from '@/lib/scoring/calculateReadiness'
 import { getDaysToGoal } from '@/lib/trajectory/calculateTrajectory'
 import { buildCoachSystemPrompt, getCurrentPhase } from '@/config/goals/kilimanjaro'
-
-function loadData() {
-  try {
-    const activities = JSON.parse(readFileSync(join(process.cwd(), 'src/data/activities.json'), 'utf8'))
-    const enrichment = JSON.parse(readFileSync(join(process.cwd(), 'src/data/enrichment.json'), 'utf8'))
-    return { activities, enrichment }
-  } catch {
-    return { activities: [], enrichment: {} }
-  }
-}
 
 function buildActivitySummary(activities) {
   if (activities.length === 0) return 'No data yet.'
@@ -39,12 +27,11 @@ export async function POST(request) {
     return Response.json({ error: 'Invalid request body.' }, { status: 400 })
   }
 
-  const { messages } = body
+  const { messages, activities = [], enrichment = {} } = body
   if (!messages?.length) {
     return Response.json({ error: 'No messages provided.' }, { status: 400 })
   }
 
-  const { activities, enrichment } = loadData()
   const readiness = calculateReadiness(activities, enrichment)
   const daysToGoal = getDaysToGoal()
   const activitySummary = buildActivitySummary(activities)

@@ -1,5 +1,6 @@
-import { readFileSync } from 'fs'
-import { join } from 'path'
+'use client'
+
+import { useState, useEffect } from 'react'
 import DashboardHeader from '@/components/dashboard/DashboardHeader'
 import Countdown from '@/components/dashboard/Countdown'
 import ReadinessRing from '@/components/dashboard/ReadinessRing'
@@ -13,21 +14,25 @@ import BottomNav from '@/components/shared/BottomNav'
 import { calculateReadiness } from '@/lib/scoring/calculateReadiness'
 import { buildTrajectoryChartData, getDaysToGoal, getReadinessGap } from '@/lib/trajectory/calculateTrajectory'
 import { getCurrentPhase } from '@/config/goals/kilimanjaro'
-
-function loadData() {
-  try {
-    const activitiesPath = join(process.cwd(), 'src/data/activities.json')
-    const enrichmentPath = join(process.cwd(), 'src/data/enrichment.json')
-    const activities = JSON.parse(readFileSync(activitiesPath, 'utf8'))
-    const enrichment = JSON.parse(readFileSync(enrichmentPath, 'utf8'))
-    return { activities, enrichment }
-  } catch {
-    return { activities: [], enrichment: {} }
-  }
-}
+import { initializeIfNeeded, getActivities, getEnrichment } from '@/lib/storage/activityStorage'
 
 export default function DashboardPage() {
-  const { activities, enrichment } = loadData()
+  const [loaded, setLoaded] = useState(false)
+  const [activities, setActivities] = useState([])
+  const [enrichment, setEnrichment] = useState({})
+
+  useEffect(() => {
+    initializeIfNeeded().then(() => {
+      setActivities(getActivities())
+      setEnrichment(getEnrichment())
+      setLoaded(true)
+    })
+  }, [])
+
+  if (!loaded) {
+    return <div className="min-h-screen bg-gray-950" />
+  }
+
   const readiness = calculateReadiness(activities, enrichment)
   const daysToGoal = getDaysToGoal()
   const gap = getReadinessGap(readiness.score)

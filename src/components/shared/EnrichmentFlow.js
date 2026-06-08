@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { getEnrichment, setEnrichment } from '@/lib/storage/activityStorage'
 
 /**
  * Post-upload enrichment card flow.
@@ -34,11 +35,17 @@ export default function EnrichmentFlow({ questions, onDone }) {
     if (collected.length === 0) { onDone(); return }
     setSaving(true)
     try {
-      await fetch('/api/enrich', {
+      const res = await fetch('/api/enrich', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ answers: collected }),
+        body: JSON.stringify({ answers: collected, currentEnrichment: getEnrichment() }),
       })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.enrichment) {
+          setEnrichment(data.enrichment)
+        }
+      }
     } catch {
       // non-blocking — enrichment failure is silent
     } finally {

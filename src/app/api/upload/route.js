@@ -1,39 +1,26 @@
-import { readFileSync, writeFileSync } from 'fs'
-import { join } from 'path'
 import { parseZeppCSV } from '@/lib/parsers/parseZeppCSV'
 import { parseManualCSV, getManualCSVTemplate } from '@/lib/parsers/parseManualCSV'
 import { parseAppleHealthXML } from '@/lib/parsers/parseAppleHealth'
 import { mergeActivities } from '@/lib/parsers/mergeActivities'
 import { generateDataQualityReport } from '@/lib/parsers/generateDataQualityReport'
 
-const ACTIVITIES_PATH = join(process.cwd(), 'src/data/activities.json')
-const ENRICHMENT_PATH = join(process.cwd(), 'src/data/enrichment.json')
-
-function loadActivities() {
-  try {
-    return JSON.parse(readFileSync(ACTIVITIES_PATH, 'utf8'))
-  } catch {
-    return []
-  }
-}
-
-function loadEnrichment() {
-  try {
-    return JSON.parse(readFileSync(ENRICHMENT_PATH, 'utf8'))
-  } catch {
-    return { defaults: {}, activities: {} }
-  }
-}
-
-function saveActivities(activities) {
-  writeFileSync(ACTIVITIES_PATH, JSON.stringify(activities, null, 2))
-}
-
 export async function POST(request) {
   try {
     const formData = await request.formData()
     const file     = formData.get('file')
     const type     = formData.get('type') // 'watch' | 'health_app' | 'manual'
+
+    // Current data sent from client (localStorage)
+    let currentActivities = []
+    let currentEnrichment = {}
+    try {
+      const rawActivities = formData.get('currentActivities')
+      if (rawActivities) currentActivities = JSON.parse(rawActivities)
+    } catch { /* use empty array */ }
+    try {
+      const rawEnrichment = formData.get('currentEnrichment')
+      if (rawEnrichment) currentEnrichment = JSON.parse(rawEnrichment)
+    } catch { /* use empty object */ }
 
     if (!file) {
       return Response.json({ error: 'No file provided' }, { status: 400 })
@@ -65,20 +52,18 @@ export async function POST(request) {
       }, { status: 422 })
     }
 
-    const existing   = loadActivities()
-    const enrichment = loadEnrichment()
-    const { merged, added, total } = mergeActivities(existing, parsed)
-    saveActivities(merged)
+    const { merged, added, total } = mergeActivities(currentActivities, parsed)
 
     // Generate enrichment questions based on what's missing in the newly added activities
     const newActivities = merged.slice(-added) // the appended ones are at the end after sort
     const { dataQuality, questions } = generateDataQualityReport(
       added > 0 ? newActivities : parsed,
-      enrichment
+      currentEnrichment
     )
 
     return Response.json({
       success:     true,
+      merged,
       parsed:      parsed.length,
       added,
       skipped:     parsed.length - added,

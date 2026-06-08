@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import MessageBubble from '@/components/coach/MessageBubble'
 import SuggestedQuestions from '@/components/coach/SuggestedQuestions'
 import TypingIndicator from '@/components/coach/TypingIndicator'
+import { initializeIfNeeded, getActivities, getEnrichment } from '@/lib/storage/activityStorage'
 
 function buildOpeningMessage(daysOld) {
   if (daysOld !== null && daysOld > 7) {
@@ -18,13 +19,27 @@ function buildOpeningMessage(daysOld) {
   }
 }
 
-export default function CoachClient({ daysOld = null }) {
-  const [messages, setMessages]   = useState(() => [buildOpeningMessage(daysOld)])
-  const [input, setInput]         = useState('')
-  const [loading, setLoading]     = useState(false)
-  const [error, setError]         = useState(null)
-  const bottomRef                 = useRef(null)
-  const inputRef                  = useRef(null)
+export default function CoachClient() {
+  const [daysOld, setDaysOld]       = useState(null)
+  const [messages, setMessages]     = useState(null)
+  const [input, setInput]           = useState('')
+  const [loading, setLoading]       = useState(false)
+  const [error, setError]           = useState(null)
+  const bottomRef                   = useRef(null)
+  const inputRef                    = useRef(null)
+
+  useEffect(() => {
+    initializeIfNeeded().then(() => {
+      const activities = getActivities()
+      let computed = null
+      if (activities.length > 0) {
+        const lastDate = [...activities].sort((a, b) => b.date.localeCompare(a.date))[0].date
+        computed = Math.floor((Date.now() - new Date(lastDate + 'T00:00:00').getTime()) / 86400000)
+      }
+      setDaysOld(computed)
+      setMessages([buildOpeningMessage(computed)])
+    })
+  }, [])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -32,7 +47,7 @@ export default function CoachClient({ daysOld = null }) {
 
   async function sendMessage(text) {
     const trimmed = (text || input).trim()
-    if (!trimmed || loading) return
+    if (!trimmed || loading || !messages) return
 
     const userMessage = { role: 'user', content: trimmed }
     const next = [...messages, userMessage]
@@ -50,6 +65,8 @@ export default function CoachClient({ daysOld = null }) {
             role: m.role === 'assistant' ? 'assistant' : 'user',
             content: m.content,
           })),
+          activities: getActivities(),
+          enrichment: getEnrichment(),
         }),
       })
 
@@ -75,6 +92,11 @@ export default function CoachClient({ daysOld = null }) {
       e.preventDefault()
       sendMessage()
     }
+  }
+
+  // Show nothing until localStorage is initialized
+  if (!messages) {
+    return <div className="flex flex-col flex-1 min-h-0" />
   }
 
   return (
