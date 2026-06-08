@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { getEnrichment, setEnrichment } from '@/lib/storage/activityStorage'
+import { getEnrichment, setEnrichment, saveDailyMetric, setRecoveryOptedOut } from '@/lib/storage/activityStorage'
 
 /**
  * Post-upload enrichment card flow.
@@ -17,6 +17,9 @@ export default function EnrichmentFlow({ questions, onDone }) {
   const [answers, setAnswers] = useState([])
   const [numberVal, setNumberVal] = useState('')
   const [saving, setSaving]   = useState(false)
+  const [showRecoveryForm, setShowRecoveryForm] = useState(false)
+  const [recoveryRhr, setRecoveryRhr] = useState('')
+  const [recoveryHrv, setRecoveryHrv] = useState('')
 
   const question = questions[idx]
   const total    = questions.length
@@ -67,6 +70,20 @@ export default function EnrichmentFlow({ questions, onDone }) {
 
   function handleSkip() {
     setNumberVal('')
+    setShowRecoveryForm(false)
+    setRecoveryRhr('')
+    setRecoveryHrv('')
+    if (idx + 1 < total) {
+      setIdx(idx + 1)
+    } else {
+      saveAnswers(answers)
+    }
+  }
+
+  function advanceRecovery() {
+    setShowRecoveryForm(false)
+    setRecoveryRhr('')
+    setRecoveryHrv('')
     if (idx + 1 < total) {
       setIdx(idx + 1)
     } else {
@@ -83,12 +100,14 @@ export default function EnrichmentFlow({ questions, onDone }) {
         <span className="text-xs text-gray-500 font-medium">
           Improve your score — {idx + 1} of {total}
         </span>
-        <button
-          onClick={handleSkip}
-          className="text-xs text-gray-500 underline underline-offset-2"
-        >
-          Skip
-        </button>
+        {question.type !== 'recovery_log' && (
+          <button
+            onClick={handleSkip}
+            className="text-xs text-gray-500 underline underline-offset-2"
+          >
+            Skip
+          </button>
+        )}
       </div>
 
       {/* Progress bar */}
@@ -121,6 +140,72 @@ export default function EnrichmentFlow({ questions, onDone }) {
                 )}
               </button>
             ))}
+          </div>
+        )}
+
+        {/* Recovery log card */}
+        {question.type === 'recovery_log' && (
+          <div className="flex flex-col gap-3">
+            {!showRecoveryForm ? (
+              <>
+                <button
+                  onClick={() => setShowRecoveryForm(true)}
+                  className="w-full text-left px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 active:opacity-70 transition-opacity"
+                >
+                  <span className="text-sm font-semibold text-white">Log now</span>
+                </button>
+                <button
+                  onClick={advanceRecovery}
+                  className="w-full text-left px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 active:opacity-70 transition-opacity"
+                >
+                  <span className="text-sm font-semibold text-white">Remind me later</span>
+                </button>
+                <button
+                  onClick={() => { setRecoveryOptedOut(); advanceRecovery() }}
+                  className="w-full text-left px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 active:opacity-70 transition-opacity"
+                >
+                  <span className="text-sm font-semibold text-white">I don&apos;t track these</span>
+                </button>
+              </>
+            ) : (
+              <div className="flex flex-col gap-3">
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Resting HR (bpm)</label>
+                  <input
+                    type="number"
+                    value={recoveryRhr}
+                    onChange={e => setRecoveryRhr(e.target.value)}
+                    placeholder="e.g. 58"
+                    className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-orange-500 transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">HRV (ms)</label>
+                  <input
+                    type="number"
+                    value={recoveryHrv}
+                    onChange={e => setRecoveryHrv(e.target.value)}
+                    placeholder="e.g. 42"
+                    className="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-orange-500 transition-colors"
+                  />
+                </div>
+                <button
+                  disabled={!recoveryRhr && !recoveryHrv}
+                  onClick={() => {
+                    const today = new Date().toISOString().slice(0, 10)
+                    saveDailyMetric({
+                      date: today,
+                      rhr: recoveryRhr ? parseFloat(recoveryRhr) : null,
+                      hrv: recoveryHrv ? parseFloat(recoveryHrv) : null,
+                    })
+                    advanceRecovery()
+                  }}
+                  className="w-full py-3 rounded-xl bg-orange-500 text-white text-sm font-bold disabled:opacity-40"
+                >
+                  Save &amp; continue
+                </button>
+              </div>
+            )}
           </div>
         )}
 

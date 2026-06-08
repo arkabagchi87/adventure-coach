@@ -1,4 +1,4 @@
-function DimensionBar({ label, score, weight }) {
+function DimensionBar({ label, score, weight, recoveryStatus }) {
   const pct = score !== null ? score : 0
   const barColor =
     score === null ? 'bg-gray-700' :
@@ -6,6 +6,36 @@ function DimensionBar({ label, score, weight }) {
     score < 50 ? 'bg-orange-500' :
     score < 70 ? 'bg-yellow-400' :
     'bg-green-500'
+
+  if (recoveryStatus === 'excluded') {
+    return (
+      <div className="mb-3 opacity-40">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-sm text-gray-500 font-medium">{label}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-600">{Math.round(weight * 100)}%</span>
+            <span className="text-sm text-gray-600 w-20 text-right">Not available</span>
+          </div>
+        </div>
+        <div className="h-2 bg-gray-800 rounded-full overflow-hidden" />
+      </div>
+    )
+  }
+
+  if (recoveryStatus === 'building') {
+    return (
+      <div className="mb-3">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-sm text-gray-300 font-medium">{label}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500">{Math.round(weight * 100)}%</span>
+            <span className="text-sm text-gray-500 w-28 text-right">Building baseline</span>
+          </div>
+        </div>
+        <div className="h-2 bg-gray-800 rounded-full overflow-hidden" />
+      </div>
+    )
+  }
 
   return (
     <div className="mb-3">
@@ -28,7 +58,7 @@ function DimensionBar({ label, score, weight }) {
   )
 }
 
-export default function DimensionBreakdown({ dimensions }) {
+export default function DimensionBreakdown({ dimensions, recoveryStatus }) {
   if (!dimensions) return null
 
   const order = [
@@ -53,6 +83,7 @@ export default function DimensionBreakdown({ dimensions }) {
             label={dim.label}
             score={dim.score}
             weight={dim.weight}
+            recoveryStatus={key === 'recovery_quality' ? recoveryStatus : undefined}
           />
         )
       })}

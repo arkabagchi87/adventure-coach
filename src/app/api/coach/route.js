@@ -27,12 +27,12 @@ export async function POST(request) {
     return Response.json({ error: 'Invalid request body.' }, { status: 400 })
   }
 
-  const { messages, activities = [], enrichment = {} } = body
+  const { messages, activities = [], enrichment = {}, dailyMetrics = [], recoveryOptedOut = false } = body
   if (!messages?.length) {
     return Response.json({ error: 'No messages provided.' }, { status: 400 })
   }
 
-  const readiness = calculateReadiness(activities, enrichment)
+  const readiness = calculateReadiness(activities, enrichment, dailyMetrics, recoveryOptedOut)
   const daysToGoal = getDaysToGoal()
   const activitySummary = buildActivitySummary(activities)
   const currentPhase = getCurrentPhase()

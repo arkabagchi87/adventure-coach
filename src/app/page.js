@@ -10,21 +10,27 @@ import PhaseIndicator from '@/components/dashboard/PhaseIndicator'
 import NextMilestone from '@/components/dashboard/NextMilestone'
 import CoachTeaser from '@/components/dashboard/CoachTeaser'
 import DataFreshnessNudge from '@/components/dashboard/DataFreshnessNudge'
+import QuickLogModal from '@/components/dashboard/QuickLogModal'
 import BottomNav from '@/components/shared/BottomNav'
 import { calculateReadiness } from '@/lib/scoring/calculateReadiness'
 import { buildTrajectoryChartData, getDaysToGoal, getReadinessGap } from '@/lib/trajectory/calculateTrajectory'
 import { getCurrentPhase } from '@/config/goals/kilimanjaro'
-import { initializeIfNeeded, getActivities, getEnrichment } from '@/lib/storage/activityStorage'
+import { initializeIfNeeded, getActivities, getEnrichment, getDailyMetrics, getRecoveryOptedOut } from '@/lib/storage/activityStorage'
 
 export default function DashboardPage() {
   const [loaded, setLoaded] = useState(false)
   const [activities, setActivities] = useState([])
   const [enrichment, setEnrichment] = useState({})
+  const [dailyMetrics, setDailyMetrics] = useState([])
+  const [recoveryOptedOut, setRecoveryOptedOutState] = useState(false)
+  const [showQuickLog, setShowQuickLog] = useState(false)
 
   useEffect(() => {
     initializeIfNeeded().then(() => {
       setActivities(getActivities())
       setEnrichment(getEnrichment())
+      setDailyMetrics(getDailyMetrics())
+      setRecoveryOptedOutState(getRecoveryOptedOut())
       setLoaded(true)
     })
   }, [])
@@ -33,7 +39,7 @@ export default function DashboardPage() {
     return <div className="min-h-screen bg-gray-950" />
   }
 
-  const readiness = calculateReadiness(activities, enrichment)
+  const readiness = calculateReadiness(activities, enrichment, dailyMetrics, recoveryOptedOut)
   const daysToGoal = getDaysToGoal()
   const gap = getReadinessGap(readiness.score)
   const phase = getCurrentPhase()
@@ -65,6 +71,16 @@ export default function DashboardPage() {
         {/* Countdown */}
         <Countdown daysToGoal={daysToGoal} />
 
+        {/* Log today button */}
+        <div className="px-5 pt-2 pb-1">
+          <button
+            onClick={() => setShowQuickLog(true)}
+            className="text-xs text-gray-400 bg-gray-800 px-4 py-2 rounded-lg font-medium"
+          >
+            Log today&apos;s recovery
+          </button>
+        </div>
+
         {/* Data freshness nudge — shows only if last upload > 7 days ago */}
         <DataFreshnessNudge lastActivityDate={lastActivityDate} />
 
@@ -74,7 +90,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Dimension Breakdown */}
-        <DimensionBreakdown dimensions={readiness.dimensions} />
+        <DimensionBreakdown dimensions={readiness.dimensions} recoveryStatus={readiness.meta.recoveryStatus} />
 
         {/* Trajectory Chart */}
         <TrajectoryChart data={trajectoryData} currentScore={readiness.score} />
@@ -90,6 +106,15 @@ export default function DashboardPage() {
       </div>
 
       <BottomNav />
+
+      {showQuickLog && (
+        <QuickLogModal
+          onClose={() => {
+            setShowQuickLog(false)
+            setDailyMetrics(getDailyMetrics())
+          }}
+        />
+      )}
     </div>
   )
 }

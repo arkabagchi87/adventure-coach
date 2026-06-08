@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 import EnrichmentFlow from './EnrichmentFlow'
-import { getActivities, getEnrichment, setActivities, setHasRealData, shouldClearMockData } from '@/lib/storage/activityStorage'
+import { getActivities, getEnrichment, setActivities, setHasRealData, shouldClearMockData, getDailyMetrics, getRecoveryOptedOut } from '@/lib/storage/activityStorage'
 
 const SOURCES = [
   {
@@ -63,8 +63,25 @@ export default function UploadModal({ onClose, onSuccess }) {
           ? { ...data, message: `Demo data removed. ${data.added} real ${data.added === 1 ? 'activity' : 'activities'} imported.` }
           : data
 
-        setResult(displayData)
-        if (data.questions?.length > 0) {
+        const hasActivityRhr = data.merged?.some(a => a.rhr != null)
+        const needsRecoveryCard = !getRecoveryOptedOut()
+          && getDailyMetrics().length < 7
+          && !hasActivityRhr
+
+        let enrichData = displayData
+        if (needsRecoveryCard) {
+          const recoveryQ = {
+            id: 'recovery_setup',
+            type: 'recovery_log',
+            priority: 0,
+            title: 'Track your recovery data',
+            body: "Recovery data improves your readiness accuracy. Your watch tracks HRV and resting heart rate but doesn't include them in exports. You can log them manually each morning — takes 30 seconds.",
+          }
+          enrichData = { ...displayData, questions: [recoveryQ, ...(displayData.questions || [])] }
+        }
+
+        setResult(enrichData)
+        if (enrichData.questions?.length > 0) {
           setPhase('enriching')
         } else {
           setPhase('result')

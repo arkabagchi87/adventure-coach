@@ -176,46 +176,58 @@ function computeEccentricConfirmed(activities, enrichment = {}) {
 
 // ─── RECOVERY QUALITY ────────────────────────────────────────────────────────
 
-/**
- * Computes 7-day HRV trend from activities with hrv data.
- * Returns: 'improving' | 'stable' | 'flat' | 'declining' | null
- */
-function computeHrvTrend(activities) {
-  const withHrv = activities
-    .filter(a => a.hrv !== null && a.hrv !== undefined)
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(-7)
-
-  if (withHrv.length < 3) return null
-
-  const values = withHrv.map(a => a.hrv)
+function computeSlopeResult(values, type) {
   const slope = computeSlope(values)
-
-  if (slope > 1.5) return 'improving'
-  if (slope > 0.3) return 'stable'
-  if (slope > -0.3) return 'flat'
-  return 'declining'
-}
-
-/**
- * Computes 7-day RHR trend.
- * Returns: 'declining' (good) | 'stable' | 'flat' | 'rising' (bad) | null
- */
-function computeRhrTrend(activities) {
-  const withRhr = activities
-    .filter(a => a.rhr !== null && a.rhr !== undefined)
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(-7)
-
-  if (withRhr.length < 3) return null
-
-  const values = withRhr.map(a => a.rhr)
-  const slope = computeSlope(values)
-
+  if (type === 'hrv') {
+    if (slope > 1.5) return 'improving'
+    if (slope > 0.3) return 'stable'
+    if (slope > -0.3) return 'flat'
+    return 'declining'
+  }
   if (slope < -0.3) return 'declining'
   if (slope < 0.3) return 'stable'
   if (slope < 1.0) return 'flat'
   return 'rising'
+}
+
+function computeHrvTrend(activities, dailyMetrics = []) {
+  const withHrv = dailyMetrics.filter(m => m.hrv != null)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(-7)
+
+  if (withHrv.length >= 3) {
+    return computeSlopeResult(withHrv.map(m => m.hrv), 'hrv')
+  }
+
+  const activityHrv = activities
+    .filter(a => a.hrv !== null && a.hrv !== undefined)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(-7)
+
+  if (activityHrv.length >= 3) {
+    return computeSlopeResult(activityHrv.map(a => a.hrv), 'hrv')
+  }
+  return null
+}
+
+function computeRhrTrend(activities, dailyMetrics = []) {
+  const withRhr = dailyMetrics.filter(m => m.rhr != null)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(-7)
+
+  if (withRhr.length >= 3) {
+    return computeSlopeResult(withRhr.map(m => m.rhr), 'rhr')
+  }
+
+  const activityRhr = activities
+    .filter(a => a.rhr !== null && a.rhr !== undefined)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(-7)
+
+  if (activityRhr.length >= 3) {
+    return computeSlopeResult(activityRhr.map(a => a.rhr), 'rhr')
+  }
+  return null
 }
 
 /** Simple linear regression slope over an array of numbers. */
@@ -249,7 +261,7 @@ function computeActiveDaysPerWeek(activities) {
  * @param {Object} enrichment  - enrichment.json data
  * @returns {ReadinessResult}
  */
-export function calculateReadiness(activities = [], enrichment = {}) {
+export function calculateReadiness(activities = [], enrichment = {}, dailyMetrics = [], recoveryOptedOut = false) {
   if (activities.length === 0) {
     return { score: null, confidence: 'none', dimensions: {}, meta: {} }
   }
@@ -266,9 +278,26 @@ export function calculateReadiness(activities = [], enrichment = {}) {
   const maxPackWeight       = computeMaxPackWeight(activities, enrichment)
   const inclineWithPack     = computeInclineWithPack(activities, enrichment)
   const eccentricConfirmed  = computeEccentricConfirmed(activities, enrichment)
-  const hrvTrend            = computeHrvTrend(activities)
-  const rhrTrend            = computeRhrTrend(activities)
+  const hrvTrend            = computeHrvTrend(activities, dailyMetrics)
+  const rhrTrend            = computeRhrTrend(activities, dailyMetrics)
   const activeDaysPerWeek   = computeActiveDaysPerWeek(activities)
+
+  // Recovery Quality dimension
+  let recoveryScore = null
+  let recoveryStatus = 'excluded'
+
+  if (!recoveryOptedOut) {
+    const rhrCount = dailyMetrics.filter(m => m.rhr != null).length
+    const hrvCount = dailyMetrics.filter(m => m.hrv != null).length
+    const hasActivityRecovery = activities.some(a => a.rhr != null || a.hrv != null)
+
+    if (rhrCount >= 7 || hasActivityRecovery) {
+      recoveryScore = scoreRecoveryQuality(computeHrvTrend(activities, dailyMetrics), computeRhrTrend(activities, dailyMetrics))
+      recoveryStatus = 'active'
+    } else if (rhrCount > 0 || hrvCount > 0) {
+      recoveryStatus = 'building'
+    }
+  }
 
   // Score each dimension
   const rawScores = {
@@ -283,7 +312,7 @@ export function calculateReadiness(activities = [], enrichment = {}) {
                           packWeightKg:            maxPackWeight,
                           progressivePackWeight:   maxPackWeight > 0,
                         }),
-    recovery_quality:   scoreRecoveryQuality(hrvTrend, rhrTrend),
+    recovery_quality:   recoveryScore,
   }
 
   // If recovery data is absent, re-weight remaining dimensions proportionally
@@ -358,6 +387,7 @@ export function calculateReadiness(activities = [], enrichment = {}) {
       activeDaysPerWeek:  Math.round(activeDaysPerWeek * 10) / 10,
       totalActivities:    activities.length,
       dataWindowDays:     28,
+      recoveryStatus,
     },
   }
 }

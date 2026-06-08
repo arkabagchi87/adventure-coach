@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import MessageBubble from '@/components/coach/MessageBubble'
 import SuggestedQuestions from '@/components/coach/SuggestedQuestions'
 import TypingIndicator from '@/components/coach/TypingIndicator'
-import { initializeIfNeeded, getActivities, getEnrichment } from '@/lib/storage/activityStorage'
+import { initializeIfNeeded, getActivities, getEnrichment, getDailyMetrics, getRecoveryOptedOut } from '@/lib/storage/activityStorage'
 
 function buildOpeningMessage(daysOld) {
   if (daysOld !== null && daysOld > 7) {
@@ -67,6 +67,8 @@ export default function CoachClient() {
           })),
           activities: getActivities(),
           enrichment: getEnrichment(),
+          dailyMetrics: getDailyMetrics(),
+          recoveryOptedOut: getRecoveryOptedOut(),
         }),
       })
 
