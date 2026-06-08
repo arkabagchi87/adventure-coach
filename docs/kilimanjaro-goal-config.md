@@ -672,3 +672,185 @@ Fields that are universal and carry across all goal types:
 - `conversational_enrichment` (fields change, mechanism same)
 - `graceful_degradation` (identical logic for all goals)
 - `coach_tone` (consistent across goals, persona may vary)
+
+--
+
+## 11. CITY TRAINING MODE
+### First-class training path for urban athletes (no hills required)
+
+The majority of users live in cities with no access to hills or trails.
+This is not a limitation — it is the expected reality. The app never
+penalises gym-based training. City training IS the training.
+
+### 11.1 Elevation Credit Equivalents
+
+These gym activities count toward the Elevation Capacity dimension:
+
+| Activity | Duration | Elevation Credit |
+|---|---|---|
+| Stairmaster / stair machine | 45min zone 2 | 300–350m |
+| Stairmaster / stair machine | 60min zone 2 | 400–450m |
+| Stairmaster / stair machine | 90min zone 2 | 600–650m |
+| Incline treadmill 10% | 45min | 200–250m |
+| Incline treadmill 10% | 60min | 300–350m |
+| Incline treadmill 10% | 90min | 400–450m |
+| Incline treadmill 12% | 60min | 350–400m |
+| Incline treadmill 15% | 60min | 450–500m |
+| Incline treadmill 15% + pack | 60min | 500–550m |
+| Real outdoor hike | actual gain | full credit (always preferred) |
+
+Coach rule: NEVER penalise gym-based elevation work.
+Coach rule: ALWAYS acknowledge that gym work is legitimate Kili preparation.
+Coach rule: Recommend real outdoor hikes for weekend sessions where possible,
+           but never assume the user has access to hills on weekdays.
+
+### 11.2 The City Training Week (Model Week)
+
+This is a complete Kilimanjaro preparation week achievable entirely in a city:
+Monday:    Strength — legs focus (squats, lunges, step-ups, calf raises)
+Tuesday:   Incline treadmill or Stairmaster — zone 2, 45–60min
+Wednesday: Rest or mobility / yoga
+Thursday:  Incline treadmill with pack — zone 2, 60min
+Friday:    Zone 2 run or flat walk — 45min
+Saturday:  Longest session — real hike if accessible,
+OR 90min incline treadmill/Stairmaster if not
+Sunday:    Active recovery — easy walk, stretch
+
+This week pattern is appropriate from Phase 1 onwards with progressive
+increases in duration, incline grade, and pack weight each phase.
+
+### 11.3 Pack Weight Training (City Version)
+
+Train with DOUBLE the mountain pack weight to stress the body at sea level.
+On the mountain your daypack will be 5–6kg. Train progressively heavier:
+
+| Phase | Training Pack Weight | Goal |
+|---|---|---|
+| Phase 1 | 0–4kg | Establish the habit |
+| Phase 2 | 4–8kg | Build load tolerance |
+| Phase 3 | 8–12kg | Train heavier than mountain weight |
+| Phase 4 (taper) | Drop to 5–6kg | Match actual mountain weight |
+
+Coach rule: When pack weight data is available, always reference it.
+Coach rule: If no pack weight logged in 4+ weeks, flag it as a gap.
+
+---
+
+## 12. PHASE-AWARE COACHING RULES
+### What the coach should and should not recommend at each phase
+
+The training programs in published Kilimanjaro guides are typically
+written for 3–6 months out. This app covers 21 months. The coach must
+never recommend advanced training stimuli to someone who is early in
+their journey. Phase awareness is non-negotiable.
+
+### Phase 1 — Base Building (Months 1–6)
+
+NEVER recommend in Phase 1:
+- 6-hour+ hike sessions
+- Pack weight above 6kg
+- 700m+ elevation gain per gym session
+- Back-to-back multi-day simulation
+- More than 10 hours training per week
+- Altitude exposure or simulation
+
+ALWAYS recommend in Phase 1:
+- Zone 2 correction as the #1 priority
+- Consistency over intensity — 5 days/week beats 2 hard days
+- Starting incline treadmill habit (even 20–30min at 8–10%)
+- Bodyweight to light-weighted strength foundation
+- Walks and easy hikes to build time-on-feet
+- "Boring is correct at this stage"
+
+Coach language for Phase 1:
+> "You have 21 months. The biggest risk right now is doing too much
+>  too soon. Build the aerobic engine first — everything else follows."
+
+### Phase 2 — Endurance Building (Months 7–13)
+
+NEVER recommend in Phase 2:
+- 8-hour+ sessions
+- Pack weight above 10kg
+- Full multi-day simulation (2–3 nights)
+- Summit night simulation
+
+ALWAYS recommend in Phase 2:
+- Progressive pack loading — add 1–2kg every 6 weeks
+- Longer weekend hikes as the anchor session
+- Introducing back-to-back days (Saturday hike + Sunday strength)
+- Elevating incline grade gradually (10% → 12% → 15%)
+- Beginning eccentric descent training
+
+Coach language for Phase 2:
+> "The base is built. Now we extend duration and add load.
+>  Your weekends are the most important training time now."
+
+### Phase 3 — Simulation (Months 14–19)
+
+NOW appropriate to recommend:
+- 6–8 hour hikes with pack
+- 10–12kg pack training
+- 700m+ elevation gain per session
+- Back-to-back 3-day hiking blocks
+- Multi-day hike overnight simulation
+- 10+ hours training per week
+
+Coach language for Phase 3:
+> "This is where we stress-test everything. The mountain
+>  is 6 months away. Every session should feel like
+>  preparation for a specific day on the route."
+
+### Phase 4 — Taper (Months 20–21)
+
+NEVER recommend in Phase 4:
+- New training stimulus of any kind
+- Increasing volume or intensity
+- New exercises or movements
+- Heavy pack sessions
+
+ALWAYS recommend in Phase 4:
+- Reduce volume 30–40% from Phase 3 peak
+- Maintain intensity but do not push
+- Gear testing — boots, poles, layers, pack
+- Sleep and nutrition focus
+- Diamox consultation with doctor
+- Mental preparation
+
+Coach language for Phase 4:
+> "Stop adding new stimulus. Protect from injury at all costs.
+>  You've done the work. Now let the body consolidate it."
+
+---
+
+## 13. UPDATED READINESS SCORING — CITY TRAINING INTEGRATION
+
+### 13.1 Elevation Capacity Scoring (Updated)
+
+Elevation sources are now weighted by quality but all count:
+Source quality ranking (highest to lowest):
+
+Real outdoor hike with GPS elevation data
+Incline treadmill 15%+ with pack weight
+Stairmaster / stair machine sustained zone 2
+Incline treadmill 10–14%
+Incline treadmill below 10% (partial credit only)
+Flat treadmill / flat walk (no elevation credit)
+
+
+Weekly elevation score uses actual gain for outdoor activities
+and estimated equivalent for gym activities per the table in Section 11.1.
+
+### 13.2 Strength Scoring (Updated with Pack Weight)
+
+Pack weight now explicitly factors into strength dimension scoring:
+
+| Signal | Score contribution |
+|---|---|
+| No strength or incline sessions | 0 |
+| 1 session/week, bodyweight only | 20 |
+| 2 sessions/week, weighted | 45 |
+| 2 sessions/week + incline with pack | 65 |
+| Progressive pack weight logged | +10 bonus |
+| Eccentric work confirmed | +15 bonus |
+| Pack weight > 8kg in sessions | +10 bonus |
+| Pack weight > 10kg in sessions | +15 bonus |
