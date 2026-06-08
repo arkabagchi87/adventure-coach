@@ -87,7 +87,7 @@ export default function UploadModal({ onClose, onSuccess }) {
   // ── Enrichment phase ─────────────────────────────────────────────────────
   if (phase === 'enriching' && result?.questions?.length > 0) {
     return (
-      <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60">
+      <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60">
         <div
           className="w-full max-w-lg bg-gray-900 rounded-t-2xl p-6"
           style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
@@ -111,7 +111,7 @@ export default function UploadModal({ onClose, onSuccess }) {
   // ── Result phase ─────────────────────────────────────────────────────────
   if (phase === 'result' && result) {
     return (
-      <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60">
+      <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60">
         <div
           className="w-full max-w-lg bg-gray-900 rounded-t-2xl p-6"
           style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
@@ -141,7 +141,7 @@ export default function UploadModal({ onClose, onSuccess }) {
 
   // ── Upload phase (idle / uploading) ──────────────────────────────────────
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60">
+    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60">
       <div className="w-full max-w-lg bg-gray-900 rounded-t-2xl flex flex-col max-h-[90dvh]">
 
         {/* Scrollable content area */}
