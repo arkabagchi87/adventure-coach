@@ -139,30 +139,36 @@ export function scoreMultidayEndurance(longestActivityHrs, maxConsecutiveDays = 
 }
 
 /**
- * Strength — scored by sessions/week and enrichment signals
+ * Strength — scored by sessions/week and enrichment signals.
+ * Rubric per Section 13.2 of kilimanjaro-goal-config.md.
  */
 export function scoreStrength({
   strengthSessionsPerWeek = 0,
   inclineSessionsPerWeek = 0,
+  inclineWithPack = false,
   eccentricWorkConfirmed = false,
   packWeightKg = 0,
+  progressivePackWeight = false,
 }) {
   let score = 0
 
-  if (strengthSessionsPerWeek === 0) {
+  const hasStrength = strengthSessionsPerWeek > 0
+  const hasIncline  = inclineSessionsPerWeek > 0
+
+  if (!hasStrength && !hasIncline) {
     score = 0
-  } else if (strengthSessionsPerWeek < 1) {
-    score = 20 // bodyweight only / rare
-  } else if (strengthSessionsPerWeek < 2) {
-    score = strengthSessionsPerWeek >= 1 && inclineSessionsPerWeek === 0 ? 40 : 40
+  } else if (strengthSessionsPerWeek >= 2 && hasIncline && inclineWithPack) {
+    score = 65 // 2 sessions/week + incline with pack
+  } else if (strengthSessionsPerWeek >= 2) {
+    score = 45 // 2 sessions/week, weighted
   } else {
-    if (inclineSessionsPerWeek > 0) score = 60
-    else score = 40
-    if (strengthSessionsPerWeek > 2) score = 75
+    score = 20 // 1 session/week, bodyweight only
   }
 
+  if (progressivePackWeight)  score = Math.min(100, score + 10)
   if (eccentricWorkConfirmed) score = Math.min(100, score + 15)
-  if (packWeightKg > 4) score = Math.min(100, score + 10)
+  if (packWeightKg > 10)      score = Math.min(100, score + 15)
+  else if (packWeightKg > 8)  score = Math.min(100, score + 10)
 
   return score
 }
@@ -250,6 +256,23 @@ export const phases = [
       packWeightKg: { start: 0, end: 4 },
     },
     coachPriority: 'Zone 2 correction is #1 priority. Slow down — every session should feel conversational.',
+    never: [
+      '6-hour+ hike sessions',
+      'Pack weight above 6kg',
+      '700m+ elevation gain per gym session',
+      'Back-to-back multi-day simulation',
+      'More than 10 hours training per week',
+      'Altitude exposure or simulation',
+    ],
+    always: [
+      'Zone 2 correction as the #1 priority',
+      'Consistency over intensity — 5 days/week beats 2 hard days',
+      'Start incline treadmill habit (20–30min at 8–10%)',
+      'Bodyweight to light-weighted strength foundation',
+      'Walks and easy hikes to build time-on-feet',
+      'Boring is correct at this stage',
+    ],
+    coachLanguage: 'You have 21 months. The biggest risk right now is doing too much too soon. Build the aerobic engine first — everything else follows.',
   },
   {
     phase: 2,
@@ -267,6 +290,20 @@ export const phases = [
       packWeightKg: { start: 4, end: 8 },
     },
     coachPriority: 'Introduce back-to-back training days. Begin eccentric descent training.',
+    never: [
+      '8-hour+ sessions',
+      'Pack weight above 10kg',
+      'Full multi-day simulation (2–3 nights)',
+      'Summit night simulation',
+    ],
+    always: [
+      'Progressive pack loading — add 1–2kg every 6 weeks',
+      'Longer weekend hikes as the anchor session',
+      'Back-to-back days (Saturday hike + Sunday strength)',
+      'Elevating incline grade gradually (10% → 12% → 15%)',
+      'Beginning eccentric descent training',
+    ],
+    coachLanguage: 'The base is built. Now we extend duration and add load. Your weekends are the most important training time now.',
   },
   {
     phase: 3,
@@ -281,9 +318,19 @@ export const phases = [
       longestActivityHrs: { start: 5, end: 8 },
       activeDaysPerWeek: { start: 6, end: 6 },
       strengthSessionsPerWeek: { start: 2, end: 2 },
-      packWeightKg: { start: 6, end: 8 },
+      packWeightKg: { start: 8, end: 12 }, // train heavier than mountain weight
     },
     coachPriority: 'Complete two consecutive 6hr+ hiking days. Break in all gear on terrain.',
+    never: [],
+    always: [
+      '6–8 hour hikes with pack',
+      '10–12kg pack training (heavier than mountain weight)',
+      '700m+ elevation gain per session',
+      'Back-to-back 3-day hiking blocks',
+      'Multi-day hike overnight simulation',
+      '10+ hours training per week',
+    ],
+    coachLanguage: 'This is where we stress-test everything. The mountain is 6 months away. Every session should feel like preparation for a specific day on the route.',
   },
   {
     phase: 4,
@@ -295,8 +342,24 @@ export const phases = [
     targets: {
       volumeReductionPercent: 35,
       strengthSessionsPerWeek: 1,
+      packWeightKg: { start: 5, end: 6 }, // drop to match actual mountain weight
     },
     coachPriority: 'Stop adding new stimulus. Protect from injury. Gear check. Doctor re: Diamox.',
+    never: [
+      'New training stimulus of any kind',
+      'Increasing volume or intensity',
+      'New exercises or movements',
+      'Heavy pack sessions',
+    ],
+    always: [
+      'Reduce volume 30–40% from Phase 3 peak',
+      'Maintain intensity but do not push',
+      'Gear testing — boots, poles, layers, pack',
+      'Sleep and nutrition focus',
+      'Diamox consultation with doctor',
+      'Mental preparation',
+    ],
+    coachLanguage: 'Stop adding new stimulus. Protect from injury at all costs. You\'ve done the work. Now let the body consolidate it.',
   },
 ]
 
@@ -463,22 +526,102 @@ export const lemoshoRoute = [
   { day: 8, from: 'Mweka Camp',                to: 'Mweka Gate (1,640m)',   km: 10, hrs: 3.5, elevGain: 0  },
 ]
 
-// ─── 9. COACH SYSTEM PROMPT ──────────────────────────────────────────────────
+// ─── 10. CITY TRAINING MODE ──────────────────────────────────────────────────
 
-export function buildCoachSystemPrompt(activitySummary, readinessScore, daysToGoal) {
+/**
+ * Elevation credit rates (metres/minute) for gym activities.
+ * Derived from midpoints of the credit ranges in Section 11.1.
+ *
+ * stair_climb: ~7.2 m/min (325m / 45min baseline)
+ * incline_walk at 10%: ~5.4 m/min  (325m / 60min)
+ * incline_walk at 12%: ~6.25 m/min (375m / 60min)
+ * incline_walk at 15%: ~7.9 m/min  (475m / 60min no pack), ~8.75 m/min (525m / 60min with pack)
+ */
+const CITY_ELEVATION_RATES = {
+  stair_climb: { rate: 325 / 45 },
+  incline_walk: {
+    10: { nopack: 325 / 60, withpack: 325 / 60 },
+    12: { nopack: 375 / 60, withpack: 375 / 60 },
+    15: { nopack: 475 / 60, withpack: 525 / 60 },
+  },
+}
+
+/**
+ * Returns estimated elevation credit (metres) for a gym session.
+ * Called when elevation_gain_m is absent but activity type and duration
+ * indicate meaningful elevation-equivalent work (Section 11.1).
+ *
+ * @param {string}  activityType    - 'stair_climb' | 'incline_walk'
+ * @param {number}  durationMinutes
+ * @param {number}  inclinePercent  - only relevant for incline_walk (default 10)
+ * @param {boolean} hasPackWeight   - whether user carried a pack
+ * @returns {number} estimated elevation in metres (0 if not applicable)
+ */
+export function estimateCityElevationCredit(
+  activityType,
+  durationMinutes,
+  inclinePercent = 10,
+  hasPackWeight = false,
+) {
+  if (!activityType || !durationMinutes || durationMinutes <= 0) return 0
+
+  if (activityType === 'stair_climb') {
+    return Math.round(CITY_ELEVATION_RATES.stair_climb.rate * durationMinutes)
+  }
+
+  if (activityType === 'incline_walk') {
+    const grade = inclinePercent >= 14 ? 15 : inclinePercent >= 11 ? 12 : 10
+    const rateMap = CITY_ELEVATION_RATES.incline_walk[grade]
+    const rate = hasPackWeight ? rateMap.withpack : rateMap.nopack
+    return Math.round(rate * durationMinutes)
+  }
+
+  return 0
+}
+
+/**
+ * Pack weight progression targets by phase (Section 11.3).
+ * Train with double mountain weight to stress the body at sea level.
+ */
+export const packWeightProgression = [
+  { phase: 1, label: 'Establish the habit',              minKg: 0,  maxKg: 4  },
+  { phase: 2, label: 'Build load tolerance',             minKg: 4,  maxKg: 8  },
+  { phase: 3, label: 'Train heavier than mountain weight', minKg: 8,  maxKg: 12 },
+  { phase: 4, label: 'Match actual mountain weight',     minKg: 5,  maxKg: 6  },
+]
+
+// ─── 11. COACH SYSTEM PROMPT ─────────────────────────────────────────────────
+
+/**
+ * Builds the full coach system prompt for Gemini.
+ * Pass currentPhase to inject phase-aware NEVER/ALWAYS rules (Section 12).
+ *
+ * @param {string}  activitySummary
+ * @param {object}  readinessScore   - result from calculateReadiness()
+ * @param {number}  daysToGoal
+ * @param {object}  currentPhase     - phase object from phases array (optional)
+ */
+export function buildCoachSystemPrompt(activitySummary, readinessScore, daysToGoal, currentPhase = null) {
   const dims = readinessScore?.dimensions || {}
   const dimSummary = Object.entries(dims)
     .map(([k, d]) => `${d.label}: ${d.score ?? '?'}`)
     .join(', ')
 
+  const phaseRules = currentPhase ? `
+
+CURRENT PHASE: Phase ${currentPhase.phase} — ${currentPhase.label} (months ${currentPhase.months})
+Phase coaching tone: "${currentPhase.coachLanguage}"
+${currentPhase.never?.length ? `\nNEVER recommend in Phase ${currentPhase.phase}:\n${currentPhase.never.map(r => `- ${r}`).join('\n')}` : ''}
+${currentPhase.always?.length ? `\nALWAYS recommend in Phase ${currentPhase.phase}:\n${currentPhase.always.map(r => `- ${r}`).join('\n')}` : ''}` : ''
+
   return `You are a mountaineering coach preparing Arka for Mount Kilimanjaro (Uhuru Peak, 5895m, Lemosho route, Feb 2028, ${daysToGoal} days away).
 
-KILIMANJARO DEMANDS: 5-8hrs hiking/day for 8 consecutive days, summit day 12-14hrs, ~900-1200m gain/day, 5-8kg pack. Fitness does NOT prevent altitude sickness — never promise it does. Zone 2 = pole pole pace. Eccentric descent training is non-negotiable.
+KILIMANJARO DEMANDS: 5-8hrs hiking/day for 8 consecutive days, summit day 12-14hrs, ~900-1200m gain/day, 5-8kg pack. Fitness does NOT prevent altitude sickness — never promise it does. Zone 2 = pole pole pace. Eccentric descent training is non-negotiable. City training (Stairmaster, incline treadmill) is legitimate Kilimanjaro preparation — never penalise gym-based work.
 
 READINESS SCORE: ${readinessScore?.score ?? 'unknown'}/100 (${readinessScore?.confidence ?? 'low'} confidence)
 DIMENSIONS: ${dimSummary}
 
 TRAINING DATA: ${activitySummary}
-
+${phaseRules}
 RULES: Use Arka's actual data in every response. Be direct and honest. 2-3 paragraphs max. Flag red flags proactively. Never give generic advice.`
 }

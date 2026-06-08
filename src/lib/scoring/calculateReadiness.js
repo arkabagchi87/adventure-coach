@@ -147,6 +147,23 @@ function computeMaxPackWeight(activities, enrichment = {}) {
   return max
 }
 
+/**
+ * Returns true if any incline/stair session in the last 4 weeks was done with a pack.
+ * Checks activity data first, then enrichment overrides and defaults.
+ */
+function computeInclineWithPack(activities, enrichment = {}) {
+  const inclineTypes = ['incline_walk', 'stair_climb']
+  const recent = recentActivities(activities, 28)
+  for (const a of recent) {
+    if (!inclineTypes.includes(a.activity_type)) continue
+    const packFromActivity    = a.pack_weight_kg || 0
+    const packFromEnrichment  = enrichment.activities?.[a.id]?.pack_weight_kg || 0
+    const packFromDefaults    = enrichment.defaults?.pack_weight_kg || 0
+    if (packFromActivity > 0 || packFromEnrichment > 0 || packFromDefaults > 0) return true
+  }
+  return false
+}
+
 /** Returns true if any strength session in enrichment has eccentric_focus: true. */
 function computeEccentricConfirmed(activities, enrichment = {}) {
   const strengthTypes = ['strength_legs', 'strength_full']
@@ -247,6 +264,7 @@ export function calculateReadiness(activities = [], enrichment = {}) {
   const strengthPerWeek     = computeStrengthSessionsPerWeek(activities)
   const inclinePerWeek      = computeInclineSessionsPerWeek(activities)
   const maxPackWeight       = computeMaxPackWeight(activities, enrichment)
+  const inclineWithPack     = computeInclineWithPack(activities, enrichment)
   const eccentricConfirmed  = computeEccentricConfirmed(activities, enrichment)
   const hrvTrend            = computeHrvTrend(activities)
   const rhrTrend            = computeRhrTrend(activities)
@@ -260,8 +278,10 @@ export function calculateReadiness(activities = [], enrichment = {}) {
     strength:           scoreStrength({
                           strengthSessionsPerWeek: strengthPerWeek,
                           inclineSessionsPerWeek:  inclinePerWeek,
+                          inclineWithPack:         inclineWithPack,
                           eccentricWorkConfirmed:  eccentricConfirmed,
                           packWeightKg:            maxPackWeight,
+                          progressivePackWeight:   maxPackWeight > 0,
                         }),
     recovery_quality:   scoreRecoveryQuality(hrvTrend, rhrTrend),
   }
@@ -322,7 +342,7 @@ export function calculateReadiness(activities = [], enrichment = {}) {
       strength: {
         score:    rawScores.strength,
         weight:   activeWeights.strength,
-        input:    { strengthPerWeek: Math.round(strengthPerWeek * 10) / 10, inclinePerWeek: Math.round(inclinePerWeek * 10) / 10, eccentricConfirmed, maxPackWeight },
+        input:    { strengthPerWeek: Math.round(strengthPerWeek * 10) / 10, inclinePerWeek: Math.round(inclinePerWeek * 10) / 10, inclineWithPack, eccentricConfirmed, maxPackWeight },
         label:    dimensions.strength.label,
       },
       recovery_quality: {

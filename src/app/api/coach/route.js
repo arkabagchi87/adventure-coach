@@ -3,7 +3,7 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 import { calculateReadiness } from '@/lib/scoring/calculateReadiness'
 import { getDaysToGoal } from '@/lib/trajectory/calculateTrajectory'
-import { buildCoachSystemPrompt } from '@/config/goals/kilimanjaro'
+import { buildCoachSystemPrompt, getCurrentPhase } from '@/config/goals/kilimanjaro'
 
 function loadData() {
   try {
@@ -48,26 +48,20 @@ export async function POST(request) {
   const readiness = calculateReadiness(activities, enrichment)
   const daysToGoal = getDaysToGoal()
   const activitySummary = buildActivitySummary(activities)
+  const currentPhase = getCurrentPhase()
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey)
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
 
-    // Build a single text prompt — avoids multi-turn role validation entirely.
-    // Include conversation history as labelled turns after the system prompt.
     const userMessages = messages.filter(m => m.role === 'user')
     const lastUserMessage = userMessages[userMessages.length - 1]?.content
     if (!lastUserMessage) {
       return Response.json({ error: 'No user message found.' }, { status: 400 })
     }
 
-    const score = readiness.score ?? 'unknown'
-    const z2 = readiness.dimensions?.aerobic_base?.input?.zone2Percent ?? 'unknown'
-    const elev = readiness.dimensions?.elevation_capacity?.input?.weeklyElevationM ?? 0
-
-    const fullPrompt = `You are a Kilimanjaro mountaineering coach. Goal: summit Feb 2028 (${daysToGoal} days away), Lemosho route, 8 days, 5895m.
-Data: readiness ${score}/100, Zone2 ${z2}%, weekly elevation ${elev}m. ${activitySummary}
-Be direct, data-driven, 2-3 short paragraphs. Reference the actual numbers.
+    const systemPrompt = buildCoachSystemPrompt(activitySummary, readiness, daysToGoal, currentPhase)
+    const fullPrompt = `${systemPrompt}
 
 Question: ${lastUserMessage}
 
