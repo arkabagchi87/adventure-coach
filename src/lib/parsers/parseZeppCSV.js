@@ -125,7 +125,7 @@ export function parseZeppCSV(csvText) {
       activity_type:      normaliseType(rawType),
       duration_minutes:   Math.round(duration),
       distance_km:        distance !== null ? Math.round(distance * 100) / 100 : 0,
-      elevation_gain_m:   elevGain !== null ? Math.round(elevGain) : 0,
+      elevation_gain_m:   elevGain !== null ? Math.round(elevGain) : null,
       avg_heart_rate:     avgHr,
       max_heart_rate:     maxHr,
       ...zones,

@@ -83,9 +83,11 @@ function computeZone2Percent(activities) {
 
 /** Returns elevation for one activity, using city credit when GPS data is absent. */
 function getEffectiveElevation(activity, enrichment = {}) {
-  if (activity.elevation_gain_m != null) return activity.elevation_gain_m
-  const { activity_type, duration_minutes, id } = activity
-  if (activity_type !== 'incline_walk' && activity_type !== 'stair_climb') return 0
+  const { activity_type, duration_minutes, id, elevation_gain_m } = activity
+  if (activity_type !== 'incline_walk' && activity_type !== 'stair_climb') {
+    return elevation_gain_m || 0
+  }
+  if (elevation_gain_m > 0) return elevation_gain_m
   const actEnrich = enrichment.activities?.[id] || {}
   const inclinePct = actEnrich.incline_percent ?? enrichment.defaults?.treadmill_incline ?? 10
   const packWeight = actEnrich.pack_weight_kg ?? enrichment.defaults?.pack_weight_kg ?? 0

@@ -88,7 +88,7 @@ export function parseManualCSV(csvText) {
       activity_type:    activityType,
       duration_minutes: Math.round(duration),
       distance_km:      parseNum(col(row, 'distance_km'), 0),
-      elevation_gain_m: parseNum(col(row, 'elevation_gain_m'), 0),
+      elevation_gain_m: parseNum(col(row, 'elevation_gain_m')),
       avg_heart_rate:   parseNum(col(row, 'avg_heart_rate')),
       max_heart_rate:   parseNum(col(row, 'max_heart_rate')),
       zone1_percent:    parseNum(col(row, 'zone1_percent')),
