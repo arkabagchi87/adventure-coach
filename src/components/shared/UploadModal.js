@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 import EnrichmentFlow from './EnrichmentFlow'
-import { getActivities, getEnrichment, setActivities } from '@/lib/storage/activityStorage'
+import { getActivities, getEnrichment, setActivities, setHasRealData, shouldClearMockData } from '@/lib/storage/activityStorage'
 
 const SOURCES = [
   {
@@ -40,10 +40,14 @@ export default function UploadModal({ onClose, onSuccess }) {
     setPhase('uploading')
     setError(null)
 
+    // On first real upload, if all existing activities are mock data, clear them
+    // so real activities start fresh. Determined once before the fetch.
+    const clearingMock = shouldClearMockData()
+
     const form = new FormData()
     form.append('file', file)
     form.append('type', source)
-    form.append('currentActivities', JSON.stringify(getActivities()))
+    form.append('currentActivities', JSON.stringify(clearingMock ? [] : getActivities()))
     form.append('currentEnrichment', JSON.stringify(getEnrichment()))
 
     try {
@@ -51,11 +55,15 @@ export default function UploadModal({ onClose, onSuccess }) {
       const data = await res.json()
 
       if (res.ok && data.success) {
-        // Store merged activities in localStorage
-        if (data.merged) {
-          setActivities(data.merged)
-        }
-        setResult(data)
+        if (data.merged) setActivities(data.merged)
+        setHasRealData()
+
+        // Override message when mock data was cleared
+        const displayData = clearingMock
+          ? { ...data, message: `Demo data removed. ${data.added} real ${data.added === 1 ? 'activity' : 'activities'} imported.` }
+          : data
+
+        setResult(displayData)
         if (data.questions?.length > 0) {
           setPhase('enriching')
         } else {

@@ -28,6 +28,30 @@ export function isInitialized() {
   return localStorage.getItem(ACTIVITIES_KEY) !== null
 }
 
+const HAS_REAL_DATA_KEY = 'adventure_coach_has_real_data'
+
+export function getHasRealData() {
+  if (typeof window === 'undefined') return false
+  return localStorage.getItem(HAS_REAL_DATA_KEY) === 'true'
+}
+
+export function setHasRealData() {
+  if (typeof window === 'undefined') return
+  localStorage.setItem(HAS_REAL_DATA_KEY, 'true')
+}
+
+/**
+ * Returns true if all current activities are mock data and no real upload has
+ * happened yet — i.e. this is the first real upload and mock data should be cleared.
+ */
+export function shouldClearMockData() {
+  if (typeof window === 'undefined') return false
+  if (getHasRealData()) return false
+  const activities = getActivities()
+  if (activities.length === 0) return false
+  return activities.every(a => a.source === 'mock')
+}
+
 /** First load: seed localStorage from the read-only API endpoint. */
 export async function initializeIfNeeded() {
   if (typeof window === 'undefined' || isInitialized()) return
