@@ -64,7 +64,8 @@ function computeZone2Percent(activities) {
   const cardioTiers = ['tier1', 'tier2', 'tier3']
   const cardio = activities.filter(a => {
     const tier = getActivityTier(a.activity_type)
-    return cardioTiers.includes(tier)
+    if (!cardioTiers.includes(tier)) return false
+    return a.zone2_percent !== null  // only sessions with recorded zone data
   })
   const recent = recentActivities(cardio, 28)
   if (recent.length === 0) return null

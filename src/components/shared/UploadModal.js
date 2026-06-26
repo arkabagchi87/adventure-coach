@@ -152,6 +152,11 @@ export default function UploadModal({ onClose, onSuccess }) {
                 {result.skipped} duplicate{result.skipped !== 1 ? 's' : ''} skipped — your existing data was not changed.
               </p>
             )}
+            {result.dropped > 0 && (
+              <p className="text-xs text-gray-500 mt-1">
+                {result.dropped} row{result.dropped !== 1 ? 's' : ''} ignored — too short (&lt;5 min) or unrecognised activity type.
+              </p>
+            )}
           </div>
           <button
             onClick={handleClose}

@@ -8,6 +8,7 @@ const VALID_TYPES = [
   'run', 'hike', 'walk', 'incline_walk', 'stair_climb',
   'strength_legs', 'strength_core', 'strength_full',
   'trail_run', 'cycle', 'swim', 'yoga', 'mobility', 'stretch',
+  'other',
 ]
 
 function parseCSVLine(line) {

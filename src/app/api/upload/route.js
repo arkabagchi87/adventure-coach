@@ -46,6 +46,10 @@ export async function POST(request) {
       }
     }
 
+    // Count raw data rows in the file to detect silent drops
+    const rawRowCount = text.split('\n').filter((l, i) => i > 0 && l.trim()).length
+    const droppedByParser = rawRowCount - parsed.length
+
     if (parsed.length === 0) {
       return Response.json({
         error: 'No activities could be read from this file. Make sure it is a valid fitness export CSV or health app XML.',
@@ -61,14 +65,21 @@ export async function POST(request) {
       currentEnrichment
     )
 
+    const skipped = parsed.length - added
+    let message = `${added} new ${added === 1 ? 'activity' : 'activities'} imported. ${skipped} duplicate${skipped !== 1 ? 's' : ''} skipped.`
+    if (droppedByParser > 0) {
+      message += ` ${droppedByParser} row${droppedByParser !== 1 ? 's' : ''} ignored (too short or unrecognised type).`
+    }
+
     return Response.json({
       success:     true,
       merged,
       parsed:      parsed.length,
       added,
-      skipped:     parsed.length - added,
+      skipped,
+      dropped:     droppedByParser,
       total,
-      message:     `${added} new ${added === 1 ? 'activity' : 'activities'} imported. ${parsed.length - added} duplicate${parsed.length - added !== 1 ? 's' : ''} skipped.`,
+      message,
       dataQuality,
       questions,
     })

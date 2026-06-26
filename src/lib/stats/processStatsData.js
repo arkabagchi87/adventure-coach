@@ -81,27 +81,34 @@ export function buildActivityDaysData(activities) {
     .map(([key, days]) => ({ week: shortWeekLabel(key), days: days.size }))
 }
 
-/** Zone distribution averaged by session count (each session weighted equally). */
+/** Zone distribution — duration-weighted, only sessions with recorded zone data. */
 export function computeZoneDistribution(activities) {
   const cardioTiers = ['tier1', 'tier2', 'tier3']
-  const cardio = activities.filter(a => cardioTiers.includes(getActivityTier(a.activity_type)))
+  // Only sessions that belong to a cardio tier AND have actual zone data recorded
+  const cardio = activities.filter(a => {
+    if (!cardioTiers.includes(getActivityTier(a.activity_type))) return false
+    return a.zone2_percent !== null || a.zone1_percent !== null
+  })
   if (cardio.length === 0) return null
 
-  const totals = { z1: 0, z2: 0, z3: 0, z4: 0, z5: 0 }
+  const totalMin = cardio.reduce((s, a) => s + (a.duration_minutes || 0), 0)
+  if (totalMin === 0) return null
+
+  const zones = { z1: 0, z2: 0, z3: 0, z4: 0, z5: 0 }
   for (const a of cardio) {
-    totals.z1 += a.zone1_percent || 0
-    totals.z2 += a.zone2_percent || 0
-    totals.z3 += a.zone3_percent || 0
-    totals.z4 += a.zone4_percent || 0
-    totals.z5 += a.zone5_percent || 0
+    const m = a.duration_minutes || 0
+    zones.z1 += m * (a.zone1_percent || 0) / 100
+    zones.z2 += m * (a.zone2_percent || 0) / 100
+    zones.z3 += m * (a.zone3_percent || 0) / 100
+    zones.z4 += m * (a.zone4_percent || 0) / 100
+    zones.z5 += m * (a.zone5_percent || 0) / 100
   }
-  const n = cardio.length
   return {
-    z1: totals.z1 / n,
-    z2: totals.z2 / n,
-    z3: totals.z3 / n,
-    z4: totals.z4 / n,
-    z5: totals.z5 / n,
+    z1: (zones.z1 / totalMin) * 100,
+    z2: (zones.z2 / totalMin) * 100,
+    z3: (zones.z3 / totalMin) * 100,
+    z4: (zones.z4 / totalMin) * 100,
+    z5: (zones.z5 / totalMin) * 100,
   }
 }
 
