@@ -214,8 +214,9 @@ Answer:`
 
     trace.update({ output: text })
 
-    // Fire-and-forget flush — don't block the response
-    langfuse.flushAsync().catch(() => {})
+    // Must await flush before returning — Vercel terminates the function
+    // the moment the response is sent, killing any background async work.
+    await langfuse.flushAsync()
 
     return Response.json({ reply: text })
   } catch (err) {
