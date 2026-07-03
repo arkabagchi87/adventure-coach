@@ -170,11 +170,11 @@ export async function POST(request) {
   const langfuse = new Langfuse({
     publicKey:     lfPublicKey,
     secretKey:     lfSecretKey,
-    baseUrl:       process.env.LANGFUSE_BASE_URL ?? 'https://cloud.langfuse.com',
+    baseUrl:       'https://us.cloud.langfuse.com',
     flushAt:       1,
     flushInterval: 0,
   })
-  console.log('[Langfuse] baseUrl:', process.env.LANGFUSE_BASE_URL ?? 'https://cloud.langfuse.com')
+  console.log('[Langfuse] baseUrl: https://us.cloud.langfuse.com')
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey)
