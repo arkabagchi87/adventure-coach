@@ -612,8 +612,8 @@ export function buildCoachSystemPrompt(activitySummary, readinessScore, daysToGo
     let detail = ''
     if (k === 'aerobic_base') {
       detail = inp.zone2Percent !== null && inp.zone2Percent !== undefined
-        ? ` (zone2=${inp.zone2Percent}% rolling 4-wk avg)`
-        : ' (no zone2 data in last 28 days — HR zone tracking not recording)'
+        ? ` (zone2=${inp.zone2Percent}% — ${inp.zone2Window ?? '28-day rolling avg'})`
+        : ' (no zone2 data recorded across full history)'
     } else if (k === 'elevation_capacity') {
       detail = ` (${inp.weeklyElevationM ?? 0}m/wk rolling avg — Phase ${inp.phase} target: 600m/wk by end)`
     } else if (k === 'multiday_endurance') {

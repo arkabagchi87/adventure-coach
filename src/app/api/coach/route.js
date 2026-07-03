@@ -108,7 +108,11 @@ function buildActivitySummary(activities, enrichment = {}) {
     maxStreak = Math.max(maxStreak, curStreak)
   }
 
-  const noZoneCount = sorted.filter(a => CARDIO_TYPES.has(a.activity_type) && a.zone2_percent === null).length
+  const noZoneCount = sorted.filter(a =>
+    CARDIO_TYPES.has(a.activity_type) &&
+    !STRENGTH_TYPES.has(a.activity_type) &&
+    a.zone2_percent === null
+  ).length
 
   // ── Assemble ─────────────────────────────────────────────────────────────
   return [

@@ -57,27 +57,48 @@ function rollingWeeklyAverage(activities, weeks, extractor) {
 // ─── AEROBIC BASE ────────────────────────────────────────────────────────────
 
 /**
- * Rolling 4-week zone 2 % across all cardio activities.
- * Excludes strength/mobility (no meaningful HR zone distribution).
+ * Zone 2 % with a three-tier fallback window.
+ *
+ * Primary   : 28-day rolling avg (requires ≥ 3 cardio sessions with zone data)
+ * Fallback 1: 90-day rolling avg (requires ≥ 3 sessions)
+ * Fallback 2: all-time avg       (used when any zone data exists)
+ * Null only  : no zone data in entire dataset
+ *
+ * Returns { percent: number|null, window: string|null }
  */
 function computeZone2Percent(activities) {
   const cardioTiers = ['tier1', 'tier2', 'tier3']
-  const cardio = activities.filter(a => {
+  const cardioWithZone = activities.filter(a => {
     const tier = getActivityTier(a.activity_type)
     if (!cardioTiers.includes(tier)) return false
-    return a.zone2_percent !== null  // only sessions with recorded zone data
+    return a.zone2_percent !== null
   })
-  const recent = recentActivities(cardio, 28)
-  if (recent.length === 0) return null
 
-  const totalMinutes = recent.reduce((s, a) => s + a.duration_minutes, 0)
-  if (totalMinutes === 0) return null
+  if (cardioWithZone.length === 0) return { percent: null, window: null }
 
-  const zone2Minutes = recent.reduce((s, a) => {
-    return s + (a.duration_minutes * (a.zone2_percent || 0)) / 100
-  }, 0)
+  const windows = [
+    { days: 28,  label: '28-day rolling avg', minSessions: 3 },
+    { days: 90,  label: '90-day rolling avg', minSessions: 3 },
+    { days: null, label: 'all-time avg',       minSessions: 1 },
+  ]
 
-  return Math.round((zone2Minutes / totalMinutes) * 100)
+  for (const { days, label, minSessions } of windows) {
+    const pool = days ? recentActivities(cardioWithZone, days) : cardioWithZone
+    if (pool.length < minSessions) continue
+
+    const totalMinutes = pool.reduce((s, a) => s + a.duration_minutes, 0)
+    if (totalMinutes === 0) continue
+
+    const zone2Minutes = pool.reduce((s, a) =>
+      s + (a.duration_minutes * (a.zone2_percent || 0)) / 100, 0)
+
+    return {
+      percent: Math.round((zone2Minutes / totalMinutes) * 100),
+      window: label,
+    }
+  }
+
+  return { percent: null, window: null }
 }
 
 // ─── ELEVATION CAPACITY ──────────────────────────────────────────────────────
@@ -284,7 +305,7 @@ export function calculateReadiness(activities = [], enrichment = {}, dailyMetric
   const phase = getCurrentPhase()
 
   // Compute raw inputs
-  const zone2Percent        = computeZone2Percent(activities)
+  const { percent: zone2Percent, window: zone2Window } = computeZone2Percent(activities)
   const weeklyElevationM    = computeWeeklyElevationGain(activities, enrichment)
   const longestActivityHrs  = computeLongestActivityHrs(activities)
   const maxConsecutiveDays  = computeMaxConsecutiveDays(activities)
@@ -368,7 +389,7 @@ export function calculateReadiness(activities = [], enrichment = {}, dailyMetric
       aerobic_base: {
         score:    rawScores.aerobic_base,
         weight:   activeWeights.aerobic_base,
-        input:    { zone2Percent },
+        input:    { zone2Percent, zone2Window },
         label:    dimensions.aerobic_base.label,
       },
       elevation_capacity: {
