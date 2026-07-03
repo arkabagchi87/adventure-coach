@@ -162,12 +162,16 @@ export async function POST(request) {
   const activitySummary = buildActivitySummary(activities, enrichment)
   const currentPhase = getCurrentPhase()
 
-  // Initialise Langfuse — no-ops gracefully if keys are absent
+  // Initialise Langfuse
+  const lfPublicKey = process.env.LANGFUSE_PUBLIC_KEY ?? ''
+  const lfSecretKey = process.env.LANGFUSE_SECRET_KEY ?? ''
+  console.log('[Langfuse] publicKey present:', !!lfPublicKey, '| secretKey present:', !!lfSecretKey)
+
   const langfuse = new Langfuse({
-    publicKey:  process.env.LANGFUSE_PUBLIC_KEY  ?? '',
-    secretKey:  process.env.LANGFUSE_SECRET_KEY  ?? '',
-    baseUrl:    'https://cloud.langfuse.com',
-    flushAt:    1,   // flush immediately in serverless context
+    publicKey:     lfPublicKey,
+    secretKey:     lfSecretKey,
+    baseUrl:       'https://cloud.langfuse.com',
+    flushAt:       1,
     flushInterval: 0,
   })
 
@@ -216,7 +220,12 @@ Answer:`
 
     // Must await flush before returning — Vercel terminates the function
     // the moment the response is sent, killing any background async work.
-    await langfuse.flushAsync()
+    try {
+      await langfuse.flushAsync()
+      console.log('[Langfuse] flush completed successfully')
+    } catch (lfErr) {
+      console.error('[Langfuse] flush failed:', lfErr?.message ?? lfErr)
+    }
 
     return Response.json({ reply: text })
   } catch (err) {
