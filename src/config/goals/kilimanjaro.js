@@ -603,9 +603,36 @@ export const packWeightProgression = [
  */
 export function buildCoachSystemPrompt(activitySummary, readinessScore, daysToGoal, currentPhase = null) {
   const dims = readinessScore?.dimensions || {}
-  const dimSummary = Object.entries(dims)
-    .map(([k, d]) => `${d.label}: ${d.score ?? '?'}`)
-    .join(', ')
+
+  // Build rich per-dimension lines that include raw input values so Gemini
+  // has real numbers even when a score is null (insufficient data).
+  const dimLines = Object.entries(dims).map(([k, d]) => {
+    const score  = d.score !== null && d.score !== undefined ? `${d.score}/100` : 'no score yet'
+    const inp    = d.input || {}
+    let detail = ''
+    if (k === 'aerobic_base') {
+      detail = inp.zone2Percent !== null && inp.zone2Percent !== undefined
+        ? ` (zone2=${inp.zone2Percent}% rolling 4-wk avg)`
+        : ' (no zone2 data in last 28 days — HR zone tracking not recording)'
+    } else if (k === 'elevation_capacity') {
+      detail = ` (${inp.weeklyElevationM ?? 0}m/wk rolling avg — Phase ${inp.phase} target: 600m/wk by end)`
+    } else if (k === 'multiday_endurance') {
+      detail = ` (longest session ${inp.longestActivityHrs ?? 0}h, max ${inp.maxConsecutiveDays ?? 0} consecutive days)`
+    } else if (k === 'strength') {
+      const pack = inp.maxPackWeight > 0 ? ` pack=${inp.maxPackWeight}kg` : ' no pack'
+      const ecc  = inp.eccentricConfirmed ? ' eccentric confirmed' : ' no eccentric training logged'
+      detail = ` (${inp.strengthPerWeek ?? 0}/wk strength, ${inp.inclinePerWeek ?? 0}/wk incline${pack}${ecc})`
+    } else if (k === 'recovery_quality') {
+      const inp2 = inp
+      if (d.score === null) {
+        detail = ` (${readinessScore?.meta?.recoveryStatus === 'building' ? 'building baseline — need 7+ daily HRV/RHR entries' : 'no recovery data logged'})`
+      } else {
+        detail = ` (hrv: ${inp2.hrvTrend ?? 'n/a'}, rhr: ${inp2.rhrTrend ?? 'n/a'})`
+      }
+    }
+    return `  ${d.label}: ${score}${detail}`
+  })
+  const dimSummary = dimLines.join('\n')
 
   const phaseRules = currentPhase ? `
 
@@ -619,7 +646,8 @@ ${currentPhase.always?.length ? `\nALWAYS recommend in Phase ${currentPhase.phas
 KILIMANJARO DEMANDS: 5-8hrs hiking/day for 8 consecutive days, summit day 12-14hrs, ~900-1200m gain/day, 5-8kg pack. Fitness does NOT prevent altitude sickness — never promise it does. Zone 2 = pole pole pace. Eccentric descent training is non-negotiable. City training (Stairmaster, incline treadmill) is legitimate Kilimanjaro preparation — never penalise gym-based work.
 
 READINESS SCORE: ${readinessScore?.score ?? 'unknown'}/100 (${readinessScore?.confidence ?? 'low'} confidence)
-DIMENSIONS: ${dimSummary}
+DIMENSIONS:
+${dimSummary}
 
 TRAINING DATA: ${activitySummary}
 ${phaseRules}

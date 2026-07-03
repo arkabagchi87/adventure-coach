@@ -168,6 +168,11 @@ Question: ${lastUserMessage}
 
 Answer:`
 
+    // Debug: log the full context sent to Gemini (visible in Vercel function logs)
+    console.log('=== COACH CONTEXT SENT TO GEMINI ===')
+    console.log(fullPrompt)
+    console.log('=== END COACH CONTEXT ===')
+
     const result = await model.generateContent(fullPrompt)
     const text = result.response.text()
 
