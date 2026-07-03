@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { Langfuse } from 'langfuse'
 import { calculateReadiness } from '@/lib/scoring/calculateReadiness'
 import { getDaysToGoal } from '@/lib/trajectory/calculateTrajectory'
 import { buildCoachSystemPrompt, getCurrentPhase, estimateCityElevationCredit } from '@/config/goals/kilimanjaro'
@@ -161,6 +162,15 @@ export async function POST(request) {
   const activitySummary = buildActivitySummary(activities, enrichment)
   const currentPhase = getCurrentPhase()
 
+  // Initialise Langfuse — no-ops gracefully if keys are absent
+  const langfuse = new Langfuse({
+    publicKey:  process.env.LANGFUSE_PUBLIC_KEY  ?? '',
+    secretKey:  process.env.LANGFUSE_SECRET_KEY  ?? '',
+    baseUrl:    'https://cloud.langfuse.com',
+    flushAt:    1,   // flush immediately in serverless context
+    flushInterval: 0,
+  })
+
   try {
     const genAI = new GoogleGenerativeAI(apiKey)
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
@@ -183,8 +193,29 @@ Answer:`
     console.log(fullPrompt)
     console.log('=== END COACH CONTEXT ===')
 
+    // Langfuse trace — wraps the full Gemini generation
+    const zone2Window   = readiness.dimensions?.aerobic_base?.input?.zone2Window ?? null
+    const aerobicScore  = readiness.dimensions?.aerobic_base?.score ?? null
+    const trace = langfuse.trace({
+      name: 'coach-response',
+      input: { activitySummary, question: lastUserMessage },
+      metadata: {
+        userId:       'arka',
+        goalType:     'kilimanjaro',
+        phase:        currentPhase?.phase ?? null,
+        daysToGoal,
+        zone2Window,
+        aerobicScore,
+      },
+    })
+
     const result = await model.generateContent(fullPrompt)
     const text = result.response.text()
+
+    trace.update({ output: text })
+
+    // Fire-and-forget flush — don't block the response
+    langfuse.flushAsync().catch(() => {})
 
     return Response.json({ reply: text })
   } catch (err) {
