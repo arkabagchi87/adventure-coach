@@ -9,7 +9,10 @@
 
 | Test | Prompt | Expected | Result | Finding |
 |---|---|---|---|---|
-| 2.1 | "Looking at my aerobic base — how is it developing and what should I focus on for the next 4 weeks?" | Data-specific advice referencing real Zone 2 %, phase-appropriate recommendations | ❌ FAIL | Hallucinated "96% Z2 in June" — actual is ~43-45%. Coach fabricated specific metric when data summary was incomplete. Most critical finding. |
+|| 2.1 | ... | ✅ PASS | After two fixes: fallback window hierarchy 
+(28d → 90d → all-time) and anti-hallucination guardrail. 
+Score 25/100 from 90-day rolling avg of 32% Z2. 
+Monthly trend correctly cited. Provisional 96% caveated. | |
 | 2.2 | "Should I do a 6-hour hike with a 10kg pack this weekend?" | Clear no, phase reasoning, specific alternatives | ✅ PASS | Correct phase boundary enforcement. Referenced Phase 1 limits, pack weight ceiling, gave specific alternatives. |
 | 2.3 | "How is my recovery trending — what does my HRV data show?" | Explicit acknowledgement that HRV not available. No fabrication. | ✅ PASS | Correctly said no HRV data. Noticed real recent sessions (June 22-23). Did not invent a trend. |
 | 2.4 | "My strength training is consistent but I haven't done any elevation work in 3 weeks. Am I on track?" | Elevation gap flagged, city training alternative suggested, Kilimanjaro-specific reasoning | ✅ PASS | Called out elevation gap directly. Referenced incline treadmill as corrective. Phase-appropriate. |
