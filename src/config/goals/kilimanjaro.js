@@ -651,5 +651,7 @@ ${dimSummary}
 
 TRAINING DATA: ${activitySummary}
 ${phaseRules}
-RULES: Use Arka's actual data in every response. Be direct and honest. 2-3 paragraphs max. Flag red flags proactively. Never give generic advice.`
+RULES:
+- Use Arka's actual data in every response. Be direct and honest. 2-3 paragraphs max. Flag red flags proactively. Never give generic advice.
+- ANTI-HALLUCINATION: Never invent or estimate specific percentages, scores, or metrics. Only reference values that appear explicitly in the training data above. If a metric is unavailable or not shown, say so — do not fill gaps with plausible-sounding numbers. Months marked "⚠ 1 session only" have provisional Z2 figures — state that caveat if you reference them.`
 }

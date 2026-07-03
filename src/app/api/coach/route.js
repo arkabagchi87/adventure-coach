@@ -44,13 +44,14 @@ function buildActivitySummary(activities, enrichment = {}) {
 
   const monthLines = Object.entries(byMonth).map(([month, acts]) => {
     const typeCounts = {}
-    let elev = 0, z2Min = 0, cardioMin = 0
+    let elev = 0, z2Min = 0, cardioMin = 0, z2SessionCount = 0
     for (const a of acts) {
       typeCounts[a.activity_type] = (typeCounts[a.activity_type] || 0) + 1
       elev += elevCredit(a, enrichment)
       if (CARDIO_TYPES.has(a.activity_type) && a.zone2_percent !== null) {
-        z2Min    += a.duration_minutes * (a.zone2_percent / 100)
-        cardioMin += a.duration_minutes
+        z2Min          += a.duration_minutes * (a.zone2_percent / 100)
+        cardioMin      += a.duration_minutes
+        z2SessionCount += 1
       }
     }
     const typeStr = Object.entries(typeCounts)
@@ -59,8 +60,13 @@ function buildActivitySummary(activities, enrichment = {}) {
         const label = t === 'strength_full' ? 'strength' : t === 'incline_walk' ? 'incline' : t
         return `${label}×${c}`
       }).join(' ')
-    const elevStr = elev > 0    ? ` ${Math.round(elev)}m↑`              : ''
-    const z2Str   = cardioMin > 0 ? ` Z2:${Math.round(z2Min / cardioMin * 100)}%` : ''
+    const elevStr = elev > 0 ? ` ${Math.round(elev)}m↑` : ''
+    let z2Str = ''
+    if (cardioMin > 0) {
+      const z2Pct = Math.round(z2Min / cardioMin * 100)
+      const sparse = z2SessionCount === 1 ? ' ⚠ 1 session only' : ` n=${z2SessionCount}`
+      z2Str = ` Z2:${z2Pct}% (${sparse})`
+    }
     return `  ${month}: ${acts.length}s (${typeStr})${elevStr}${z2Str}`
   })
 
